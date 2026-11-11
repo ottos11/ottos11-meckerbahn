@@ -14,13 +14,13 @@ mkdir -p "$RES/values" "$RES/values-night"
 cat > "$RES/values/mb_colors.xml" <<'XML'
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="mb_bg">#F3F5F8</color>
+    <color name="mb_bg">#F4F4F1</color>
 </resources>
 XML
 cat > "$RES/values-night/mb_colors.xml" <<'XML'
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="mb_bg">#10141A</color>
+    <color name="mb_bg">#141516</color>
 </resources>
 XML
 python3 - "$RES/values/styles.xml" <<'PY'
@@ -33,23 +33,19 @@ if "mb_bg" not in s:
 print(s)
 PY
 
-# App-Symbol: Sprechblase mit Zugfront (ab Android 8 als adaptives Symbol)
+# App-Symbol: gelbe Sprechblase mit dem H der Haltestelle
 mkdir -p "$RES/drawable" "$RES/mipmap-anydpi-v26"
 cat > "$RES/drawable/mb_icon_fg.xml" <<'XML'
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- Sprechblase in U-Bahn-Blau -->
-    <path android:fillColor="#0B5CAD"
+    <!-- Sprechblase im Gelb des Haltestellenschilds -->
+    <path android:fillColor="#F5B800"
         android:pathData="M34,26h40a8,8 0 0 1 8,8v28a8,8 0 0 1 -8,8H48.5l-10.4,9.1c-1.9,1.6 -4.8,0.2 -4.6,-2.3l0.6,-7.2A8,8 0 0 1 26,62V34a8,8 0 0 1 8,-8z"/>
-    <!-- Weiße Zugfront mit Frontscheibe, Lichtern und Puffer -->
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M42,31h24a7,7 0 0 1 7,7v14a7,7 0 0 1 -7,7H42a7,7 0 0 1 -7,-7V38a7,7 0 0 1 7,-7z"/>
-    <path android:fillColor="#0B5CAD"
-        android:pathData="M43,36h22a3,3 0 0 1 3,3v5a3,3 0 0 1 -3,3H43a3,3 0 0 1 -3,-3v-5a3,3 0 0 1 3,-3z M42.1,53a2.4,2.4 0 1 0 4.8,0a2.4,2.4 0 1 0 -4.8,0z M61.1,53a2.4,2.4 0 1 0 4.8,0a2.4,2.4 0 1 0 -4.8,0z"/>
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M40.8,62h26.4a1.8,1.8 0 0 1 0,3.6H40.8a1.8,1.8 0 0 1 0,-3.6z"/>
+    <!-- Das H der Haltestelle -->
+    <path android:strokeColor="#1C1D1F" android:strokeWidth="7.5" android:strokeLineCap="round"
+        android:pathData="M43.5,36.5v23M64.5,36.5v23M43.5,48h21"/>
 </vector>
 XML
 cat > "$RES/values/mb_icon.xml" <<'XML'

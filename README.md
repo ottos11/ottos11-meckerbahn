@@ -1,20 +1,20 @@
-# Meckerbahn
+# Meckerlinie
 
-Android-App für Beschwerden zu U-Bahn, S-Bahn, Stadt- und Straßenbahn. Die Schwester-App der Meckerlinie (Bus).
+Android-App für Beschwerden zu Bus und Bahn: Die App schreibt eine fertige Beschwerde und schickt sie an den zuständigen Verkehrsbetrieb.
 
 Gemeldet werden können:
 
-- **Fahrplan:** Zug zu spät, ausgefallen oder zu früh abgefahren
-- **Im Zug oder an der Haltestelle:** Belästigung, Betteln, Gestank, Dreck
+- **Die Fahrt:** zu spät gekommen, ausgefallen, zu früh abgefahren, gefährliche Fahrweise
+- **Im Fahrzeug oder an der Haltestelle:** Belästigung, Betteln, Gestank, Dreck
 
 So läuft eine Meldung ab:
 
-1. Art des Vorfalls wählen. Bei Belästigung, Betteln, Gestank und Dreck zusätzlich: im Zug oder an der Haltestelle, und was genau.
+1. Art des Vorfalls wählen. Bei Belästigung, Betteln, Gestank und Dreck zusätzlich: im Fahrzeug oder an der Haltestelle, und was genau.
 2. Standort verwenden oder die Haltestelle über ihren Namen suchen. Datum und Uhrzeit lassen sich ändern.
-3. Im Zug: Linie, Richtung und Abfahrt aus dem Fahrplan wählen, optional die Wagennummer. An der Haltestelle: angeben, welche Bahn dort hält, optional die genaue Stelle.
+3. Linie, Richtung und Abfahrt aus dem Fahrplan wählen. Die Haltestelle zeigt alle Linien, nach Bus, U-Bahn, S-Bahn und Tram sortiert. Bei Meldungen an der Haltestelle reicht die Angabe, was dort hält.
 4. Bis zu drei Fotos anhängen, Beschwerde prüfen und per Mail-App oder Kontaktformular abschicken.
 
-Der Verlauf sammelt alle Vorfälle nach Linie und Haltestelle. Frühere Fälle stehen in der nächsten Mail, ab zwei Vorfällen gibt es eine Sammelbeschwerde.
+Der Verlauf sammelt alle Vorfälle nach Linie und Haltestelle. Frühere Fälle stehen in der nächsten Beschwerde, ab zwei Vorfällen gibt es eine Sammelbeschwerde.
 
 Fahrplan- und Echtzeitdaten kommen von [Transitous](https://transitous.org/). Name, Verlauf und Einstellungen bleiben auf dem Gerät. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang der Mail oder per Upload im Formular.
 
@@ -33,29 +33,31 @@ Die App erkennt die Stadt am Standort und schickt die Beschwerde an den zuständ
 
 Bei Betrieben mit Formular kopiert die App den Text und öffnet das Formular. In anderen Städten funktioniert die App auch, die Adresse des Betriebs trägt man dann einmal selbst ein. Die Stadt lässt sich unter Einstellungen auch fest einstellen.
 
-Neue Stadt: Eintrag in `www/cities.js` ergänzen. Welche Namen der Fahrplandienst für die Betriebe einer Stadt verwendet, zeigt der Workflow „Betreiber auflisten“ im Repo der Meckerbahn.
+Neue Stadt: Eintrag in `www/cities.js` ergänzen. Welche Namen der Fahrplandienst für die Betriebe einer Stadt verwendet, zeigt der Workflow „Betreiber auflisten“ (unter Actions von Hand starten, Orte als `Name|Breite,Länge`).
 
-## Gemeinsamer Code
+## Gestaltung
 
-Meckerlinie und Meckerbahn teilen sich `www/index.html` und `www/cities.js`. Nur `www/app.js` legt fest, welche App gebaut wird. Änderungen an den beiden gemeinsamen Dateien gehören in beide Repos.
+Verkehrsbetriebe haben je Stadt eigene Farben, deshalb ist die App neutral: Schwarz auf hellem Grau und das Gelb des Haltestellenschilds, das bundesweit gleich ist. Linienschilder tragen die üblichen Zeichenfarben: Blau für U-Bahn, Grün für S-Bahn, sonst Schwarz.
 
 ## APK herunterladen
 
 Bei jedem Push auf `main` baut GitHub Actions automatisch eine neue APK.
 
 1. Im Repo rechts auf **Releases** gehen.
-2. `meckerbahn.apk` auf dem Handy herunterladen und installieren, oder das Repo in Obtainium eintragen.
+2. `meckerlinie.apk` auf dem Handy herunterladen und installieren, oder das Repo in Obtainium eintragen.
 
 Jede APK wird mit demselben Schlüssel signiert (`signing/debug.keystore`, Standard-Passwort `android`), damit sich neue Versionen als Update installieren lassen.
 
 ## Aufbau
 
-- `www/index.html`: die komplette App (HTML, CSS, JavaScript), gemeinsam mit der Meckerlinie
+- `www/index.html`: die komplette App (HTML, CSS, JavaScript)
 - `www/cities.js`: Städte, Betriebe und Beschwerdeadressen
-- `www/app.js`: legt fest, dass die Meckerbahn gebaut wird
 - `www/fonts/`: Schrift Barlow (SIL Open Font License)
 - `capacitor.config.json`: App-Name und Paket-ID
 - `scripts/patch-android.sh`: ergänzt GPS-Rechte, Farben und das App-Symbol im Android-Projekt
 - `.github/workflows/build-apk.yml`: baut die APK
+- `.github/workflows/betreiber.yml`: listet die Betriebe einer Stadt aus dem Fahrplandienst
+
+Die Paket-ID `de.ottos11.meckerbahn` stammt aus der Zeit, als Bus und Bahn noch zwei Apps waren. Sie bleibt, damit sich die App als Update über die bisherige Meckerbahn installieren lässt.
 
 Fotos hängt die App über das Plugin `capacitor-email-composer` an die Mail. Das Android-Projekt (`android/`) wird beim Build jedes Mal neu erzeugt und liegt deshalb nicht im Repo.

@@ -1,8 +1,8 @@
 {
-  "name": "meckerbahn",
+  "name": "meckerlinie",
   "version": "1.0.0",
   "private": true,
-  "description": "Android-App: Beschwerden zu Hamburgs U- und S-Bahn, vom verspäteten Zug bis zum verdreckten Wagen",
+  "description": "Android-App: Beschwerden zu Bus und Bahn beim zuständigen Verkehrsbetrieb, für mehrere deutsche Städte",
   "scripts": {
     "android:add": "cap add android",
     "android:sync": "cap sync android"

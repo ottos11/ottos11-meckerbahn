@@ -31,7 +31,7 @@ jobs:
       - name: Fahrplan-API testen (Transitous)
         continue-on-error: true
         run: |
-          UA="Meckerbahn/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
+          UA="Meckerlinie/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
           echo "== Haltestellen nahe Hamburg Jungfernstieg"
           curl -sS -A "$UA" "https://api.transitous.org/api/v1/reverse-geocode?place=53.5529,9.9937&type=STOP&numResults=20" > stops.json
           jq -c '.[] | {type,name,id,modes}' stops.json | head -12
@@ -85,22 +85,22 @@ jobs:
       - name: APK umbenennen und Signatur prüfen
         run: |
           APK=$(ls android/app/build/outputs/apk/release/*.apk android/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1)
-          cp "$APK" meckerbahn.apk
-          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify --print-certs meckerbahn.apk | head -3
+          cp "$APK" meckerlinie.apk
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify --print-certs meckerlinie.apk | head -3
 
       - name: APK als Build-Ergebnis speichern
         uses: actions/upload-artifact@v4
         with:
-          name: meckerbahn.apk
-          path: meckerbahn.apk
+          name: meckerlinie.apk
+          path: meckerlinie.apk
 
       - name: Release mit APK veröffentlichen
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Meckerbahn 1.0.${{ github.run_number }}
+          name: Meckerlinie 1.0.${{ github.run_number }}
           body: |
             Automatisch gebaute Android-App.
             Auf dem Handy herunterladen und installieren (Installation aus unbekannten Quellen einmal erlauben).
-          files: meckerbahn.apk
+          files: meckerlinie.apk
           make_latest: true

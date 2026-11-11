@@ -4,15 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>Meckerbahn</title>
-<script src="app.js"></script>
+<title>Meckerlinie</title>
 <script src="cities.js"></script>
 <style>
-/* Ein Code für zwei Apps. Meckerlinie (Bus): Busrot auf Weiß. Meckerbahn
-   (U-, S-, Stadt- und Straßenbahn): das Blau der Schnellbahn-Zeichen, Grün
-   für S-Linien. Gelb steht in beiden für Hinweise. Schrift aus der Welt der
-   Fahrzeugbeschilderung (Barlow). Aufbau: eine Spalte, vier nummerierte
-   Schritte, unten drei Reiter. */
+/* Meckerlinie: Beschwerden zu Bus und Bahn in ganz Deutschland.
+   Verkehrsbetriebe haben je Stadt eigene Farben, deshalb bleibt die App
+   neutral: Schwarz auf hellem Grau, dazu das Gelb des Haltestellenschilds,
+   das bundesweit gleich ist. Gelb markiert, was als Nächstes zu tun ist
+   (Hauptknopf, erledigte Schritte). Linienschilder tragen die üblichen
+   Zeichenfarben: Blau für U-Bahn, Grün für S-Bahn, sonst Schwarz.
+   Schrift aus der Welt der Fahrzeugbeschilderung (Barlow). */
 @font-face{font-family:"Barlow";src:url("fonts/Barlow-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Barlow";src:url("fonts/Barlow-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
 @font-face{font-family:"Barlow";src:url("fonts/Barlow-SemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
@@ -20,33 +21,23 @@
 @font-face{font-family:"Barlow Semi Condensed";src:url("fonts/BarlowSemiCondensed-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
 
 :root{
-  --bg:#F7F4F2; --surface:#FFFFFF; --ink:#221B19; --muted:#6E615C; --line:#E2D9D4;
-  --accent:#B3001E; --on-accent:#FFFFFF; --accent-soft:#F9E2E2;
-  --s-green:#1B7F3B; --on-s-green:#FFFFFF;
-  --sign-yellow:#F5B800;
-  --warn-soft:#FFF1CC; --shade:34,27,25;
+  --bg:#F4F4F1; --surface:#FFFFFF; --ink:#1C1D1F; --muted:#62656A; --line:#DADBD6;
+  --accent:#1C1D1F; --on-accent:#FFFFFF; --accent-soft:#EAEAE5;
+  --sign-yellow:#F5B800; --on-yellow:#1C1D1F;
+  --u-blue:#1A5DAD; --on-u-blue:#FFFFFF; --s-green:#1B7F3B; --on-s-green:#FFFFFF;
+  --warn-soft:#FFF1CC; --shade:28,29,31;
   --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   color-scheme:light;
 }
-:root[data-kind="bahn"]{
-  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#171C22; --muted:#5A6470; --line:#D6DCE4;
-  --accent:#0B5CAD; --on-accent:#FFFFFF; --accent-soft:#DDE9F7;
-  --shade:23,28,34;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#171213; --surface:#221A1B; --ink:#F1E9E7; --muted:#B2A29D; --line:#3C2F30;
-    --accent:#FF7A72; --on-accent:#330608; --accent-soft:#41201F;
-    --s-green:#5FD083; --on-s-green:#04260F;
-    --warn-soft:#3B2F0F; --shade:0,0,0;
-    color-scheme:dark;
-  }
-  :root[data-kind="bahn"]{
-    --bg:#10141A; --surface:#1A2029; --ink:#E8EDF3; --muted:#9DA8B5; --line:#2C3542;
-    --accent:#6FB1FF; --on-accent:#04203F; --accent-soft:#17304D;
-  }
-}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#141516; --surface:#1E2022; --ink:#ECECE8; --muted:#A4A6A9; --line:#34373B;
+  --accent:#ECECE8; --on-accent:#141516; --accent-soft:#2C2E31;
+  --sign-yellow:#F5C400; --on-yellow:#141516;
+  --u-blue:#7FB2F0; --on-u-blue:#06203F; --s-green:#5FD083; --on-s-green:#04260F;
+  --warn-soft:#3B2F0F; --shade:0,0,0;
+  color-scheme:dark;
+}}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -70,7 +61,7 @@ ul{padding:0;list-style:none}
 .step.first{border-top:0;padding-top:4px}
 .step-head{display:flex;align-items:center;gap:10px}
 .num{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);font:700 .95rem/26px var(--f-display);text-align:center;flex:none}
-.num.done{background:var(--accent);color:var(--on-accent)}
+.num.done{background:var(--sign-yellow);color:var(--on-yellow)}
 h2{font:600 1.3rem/1.2 var(--f-display)}
 h3{font:600 1.05rem/1.25 var(--f-display)}
 .hint{font-size:.85rem;color:var(--muted)}
@@ -92,7 +83,7 @@ select.ctl:disabled{color:var(--muted);opacity:1;background:transparent}
 /* Knöpfe */
 .btn{font:600 1rem/1.2 var(--f-body);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;text-decoration:none;text-align:center;white-space:nowrap}
 .btn svg{width:20px;height:20px}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary{background:var(--sign-yellow);border-color:var(--sign-yellow);color:var(--on-yellow)}
 .btn.quiet{border-color:transparent;background:transparent;color:var(--accent);padding:0 6px;min-height:40px}
 .btn[aria-disabled="true"],.btn:disabled{opacity:.45;pointer-events:none}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
@@ -106,7 +97,7 @@ select.ctl:disabled{color:var(--muted);opacity:1;background:transparent}
 .tile input{position:absolute;opacity:0;pointer-events:none}
 .tile .t{display:flex;align-items:center;gap:10px;height:100%;min-height:58px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);font-weight:500;line-height:1.2;cursor:pointer}
 .sym{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);display:grid;place-items:center;font:700 1.2rem/1 var(--f-display);flex:none}
-.tile input:checked+.t{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.tile input:checked+.t{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft);font-weight:600}
 .tile input:checked+.t .sym{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .tile input:focus-visible+.t{outline:2px solid var(--accent);outline-offset:2px}
 .tiles.three{grid-template-columns:repeat(3,1fr)}
@@ -147,7 +138,8 @@ details.more .inner{display:flex;flex-direction:column;gap:12px;padding-top:8px}
 .times dt{font-size:.8rem;color:var(--muted)}
 .times dd{font:700 1.15rem/1.2 var(--f-display);font-variant-numeric:tabular-nums}
 .badge.s{background:var(--s-green);color:var(--on-s-green)}
-.pill{display:inline-block;font-weight:600;font-size:.85rem;padding:3px 10px;border-radius:999px;background:var(--sign-yellow);color:#3A2E00}
+.badge.u{background:var(--u-blue);color:var(--on-u-blue)}
+.pill{display:inline-block;font-weight:600;font-size:.85rem;padding:3px 10px;border-radius:999px;background:var(--sign-yellow);color:var(--on-yellow)}
 
 /* Fotos */
 .vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
@@ -221,8 +213,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <defs>
-    <symbol id="i-h-bus" viewBox="0 0 32 32"><path fill="#E2001A" d="M6 2.5h20A3.5 3.5 0 0 1 29.5 6v15a3.5 3.5 0 0 1-3.5 3.5H13.9l-5.6 4.9c-.8.7-2.1.1-2-1l.3-4.1A3.5 3.5 0 0 1 2.5 21V6A3.5 3.5 0 0 1 6 2.5z"/><rect x="7" y="6.5" width="18" height="10.5" rx="2" fill="#FFFFFF"/><rect x="9.2" y="8.7" width="5.6" height="4" rx=".9" fill="#E2001A"/><rect x="17.2" y="8.7" width="5.6" height="4" rx=".9" fill="#E2001A"/><circle cx="11.5" cy="19.6" r="1.9" fill="#FFFFFF"/><circle cx="20.5" cy="19.6" r="1.9" fill="#FFFFFF"/></symbol>
-    <symbol id="i-h-bahn" viewBox="0 0 32 32"><path fill="#0B5CAD" d="M6 2.5h20A3.5 3.5 0 0 1 29.5 6v15a3.5 3.5 0 0 1-3.5 3.5H13.9l-5.6 4.9c-.8.7-2.1.1-2-1l.3-4.1A3.5 3.5 0 0 1 2.5 21V6A3.5 3.5 0 0 1 6 2.5z"/><rect x="8.5" y="5.5" width="15" height="13" rx="3.2" fill="#FFFFFF"/><rect x="10.7" y="7.6" width="10.6" height="5" rx="1.3" fill="#0B5CAD"/><circle cx="12.3" cy="15.4" r="1.15" fill="#0B5CAD"/><circle cx="19.7" cy="15.4" r="1.15" fill="#0B5CAD"/><rect x="10" y="20" width="12" height="1.9" rx=".95" fill="#FFFFFF"/></symbol>
+    <symbol id="i-h" viewBox="0 0 32 32"><path fill="#F5B800" d="M6 2.5h20A3.5 3.5 0 0 1 29.5 6v15a3.5 3.5 0 0 1-3.5 3.5H13.9l-5.6 4.9c-.8.7-2.1.1-2-1l.3-4.1A3.5 3.5 0 0 1 2.5 21V6A3.5 3.5 0 0 1 6 2.5z"/><path d="M11.4 8v11M20.6 8v11M11.4 13.5h9.2" fill="none" stroke="#1C1D1F" stroke-width="3.2" stroke-linecap="round"/></symbol>
     <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
@@ -245,7 +236,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
 <div class="app">
   <header class="top">
     <svg class="mark" aria-hidden="true"><use href="#i-h"/></svg>
-    <h1><span id="appName">Meckerbahn</span> <span class="city" id="cityName"></span></h1>
+    <h1><span id="appName">Meckerlinie</span> <span class="city" id="cityName"></span></h1>
   </header>
 
   <!-- ===================== Melden ===================== -->
@@ -257,7 +248,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
         <div class="field" id="ortField">
           <span class="lbl" id="ortLbl">Wo war das?</span>
           <div class="seg" role="radiogroup" aria-labelledby="ortLbl">
-            <label><input type="radio" name="ort" value="zug" checked><span>Im Zug</span></label>
+            <label><input type="radio" name="ort" value="zug" checked><span>Im Fahrzeug</span></label>
             <label><input type="radio" name="ort" value="halt"><span>An der Haltestelle</span></label>
           </div>
         </div>
@@ -265,7 +256,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
           <span class="lbl"><span id="detLbl">Was genau?</span> <small class="hint">Mehrere möglich</small></span>
           <div class="chips" id="detChips" role="group" aria-labelledby="detLbl"></div>
         </div>
-        <p class="note warn" id="safeNote" hidden>Bei akuter Gefahr: Polizei 110. Im Zug gibt es Notsprechstellen an den Türen, am Bahnsteig Notrufsäulen. Diese Mail ersetzt keine Anzeige bei der Polizei.</p>
+        <p class="note warn" id="safeNote" hidden>Bei akuter Gefahr: Polizei 110. In Bussen und Bahnen gibt es Notruf- oder Sprechtasten, an vielen Bahnsteigen Notrufsäulen. Diese Mail ersetzt keine Anzeige bei der Polizei.</p>
       </div>
     </section>
 
@@ -309,7 +300,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
       </div>
       <div class="sub" id="haltWrap" hidden>
         <div class="field">
-          <span class="lbl" id="berLbl">Welche Bahn hält dort?</span>
+          <span class="lbl" id="berLbl">Was hält dort?</span>
           <div class="seg" id="berSeg" role="radiogroup" aria-labelledby="berLbl"></div>
           <span class="hint">Danach richtet sich, an wen die Beschwerde geht.</span>
         </div>
@@ -501,23 +492,31 @@ const mins=v=>`${v} Minute${v===1?"":"n"}`;
 const natSort=(x,y)=>x.localeCompare(y,"de",{numeric:true});
 const noRi=s=>String(s||"").replace(/^Richtung\s+/i,"").trim();
 
-// ---------- Welche App? ----------
-const KIND=(window.APP&&window.APP.kind)==="bus"?"bus":"bahn";
-const K=KIND==="bus"?"bzf.":"mb.";   // Speicherpräfix, damit bestehende Daten erhalten bleiben
+// ---------- Eine App für Bus und Bahn ----------
+const K="mb.";   // Speicherpräfix: Verlauf und Einstellungen der Meckerbahn bleiben erhalten
 const CITIES=window.CITIES||[];
 const lnBahn=l=>/^[A-Za-zÄÖÜ]/.test(l)?l:"Linie "+l;
-const V=KIND==="bus"?{
-  app:"Meckerlinie",fz:"Bus",fzPl:"Busse",plat:"an der Haltestelle",which:"Welcher Bus?",
-  stopWord:"Bushaltestelle",depWord:"Busabfahrten",want:["BUS"],modeParam:"BUS",radius:120,
-  ln:l=>"Linie "+l,subj:l=>"Bus Linie "+l,gen:l=>"der Linie "+l,inV:l=>"im Bus der Linie "+l,
-  ermitteln:"So kann der Betrieb Bus und Fahrpersonal ermitteln.",
-  wagenHint:"Steht innen über der Tür oder vorn im Bus.",wagenEx:"z. B. 7804",lineEx:"5"
-}:{
-  app:"Meckerbahn",fz:"Zug",fzPl:"Züge",plat:"am Bahnsteig",which:"Welcher Zug?",
-  stopWord:"Bahnhaltestelle",depWord:"Bahnabfahrten",want:["SUBWAY","SUBURBAN","TRAM","METRO"],modeParam:"SUBWAY,SUBURBAN,TRAM",radius:250,
-  ln:lnBahn,subj:lnBahn,gen:l=>"der "+lnBahn(l),inV:l=>"in der "+lnBahn(l),
-  ermitteln:"So kann der Betrieb den Zug ermitteln.",
-  wagenHint:"Steht innen im Wagen, meist an den Wagenenden. Damit findet der Betrieb den Wagen sicher.",wagenEx:"z. B. 4742",lineEx:"U1 oder S1"
+// Welche Verkehrsart eine Linie hat, steht im Fahrplan. Ohne Fahrplan wird geraten.
+let lineMode={};
+function guessMode(l){l=String(l||"");if(/^S\s?\d/i.test(l))return "SUBURBAN";if(/^U\s?\d/i.test(l))return "SUBWAY";return "BUS"}
+const modeOf=l=>lineMode[String(l||"").toUpperCase()]||guessMode(l);
+// Wörter für die Mail, passend zum Fahrzeug
+const VEH={
+  BUS:{bus:true,fz:"Bus",fzPl:"Busse",plat:"an der Haltestelle",ermitteln:"So kann der Betrieb Bus und Fahrpersonal ermitteln.",wagenHint:"Steht innen über der Tür oder vorn im Bus.",wagenEx:"z. B. 7804"},
+  RAIL:{bus:false,fz:"Zug",fzPl:"Züge",plat:"am Bahnsteig",ermitteln:"So kann der Betrieb den Zug ermitteln.",wagenHint:"Steht innen im Wagen, meist an den Wagenenden. Damit findet der Betrieb den Wagen sicher.",wagenEx:"z. B. 4742"}
+};
+VEH.TRAM={...VEH.RAIL,plat:"an der Haltestelle"};
+const veh=m=>m==="BUS"?VEH.BUS:m==="TRAM"?VEH.TRAM:VEH.RAIL;
+const curVeh=()=>veh(modeOf(line()));
+const V={
+  app:"Meckerlinie",which:"Welche Linie?",stopWord:"Haltestelle",depWord:"Abfahrten",
+  want:["BUS","SUBWAY","SUBURBAN","TRAM","METRO"],modeParam:"BUS,SUBWAY,SUBURBAN,TRAM",radius:250,lineEx:"5 oder U1",
+  get fz(){return curVeh().fz},get fzPl(){return curVeh().fzPl},get plat(){return curVeh().plat},
+  get ermitteln(){return curVeh().ermitteln},get wagenHint(){return curVeh().wagenHint},get wagenEx(){return curVeh().wagenEx},
+  ln:l=>veh(modeOf(l)).bus?"Linie "+l:lnBahn(l),
+  subj:l=>veh(modeOf(l)).bus?"Bus Linie "+l:lnBahn(l),
+  gen:l=>"der "+(veh(modeOf(l)).bus?"Linie "+l:lnBahn(l)),
+  inV:l=>veh(modeOf(l)).bus?"im Bus der Linie "+l:"in der "+lnBahn(l)
 };
 const okMail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -525,8 +524,8 @@ const okMail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 // cond: Meldungen zu Zustand und Sicherheit, im Fahrzeug oder an der Haltestelle
 const COND={ist:"Passiert um",istMail:"Uhrzeit des Vorfalls",plate:"Vorfall",pick:"Deine Fahrt (Abfahrt laut Fahrplan)",showIst:true,cond:true};
 const ALLTYPES={
-  frueh:{kurz:"zu früh abgefahren",ist:"Abgefahren um",istMail:"Tatsächliche Abfahrt",plate:"Abgefahren",pick:"Abfahrt laut Fahrplan",showIst:true,sym:"−",tile:KIND==="bus"?"Zu früh abgefahren":"Zu früh"},
-  spaet:{kurz:"zu spät gekommen",ist:"Gekommen um",istMail:"Tatsächlich gekommen",plate:"Gekommen",pick:"Abfahrt laut Fahrplan",showIst:true,sym:"+",tile:KIND==="bus"?"Zu spät gekommen":"Zu spät"},
+  frueh:{kurz:"zu früh abgefahren",ist:"Abgefahren um",istMail:"Tatsächliche Abfahrt",plate:"Abgefahren",pick:"Abfahrt laut Fahrplan",showIst:true,sym:"−",tile:"Zu früh abgefahren"},
+  spaet:{kurz:"zu spät gekommen",ist:"Gekommen um",istMail:"Tatsächlich gekommen",plate:"Gekommen",pick:"Abfahrt laut Fahrplan",showIst:true,sym:"+",tile:"Zu spät gekommen"},
   ausfall:{kurz:"ausgefallen",ist:"An der Haltestelle um",istMail:"",plate:"",pick:"Ausgefallene Abfahrt",showIst:false,sym:"×",tile:"Ausgefallen"},
   fahrweise:{kurz:"gefährliche Fahrweise",...COND,ortFix:"zug",sym:"!",tile:"Gefährliche Fahrweise"},
   belaestigt:{kurz:"Belästigung",...COND,sym:"!",tile:"Ich wurde belästigt"},
@@ -534,9 +533,10 @@ const ALLTYPES={
   gestank:{kurz:"Gestank",...COND,icon:"i-smell",tile:"Gestank"},
   dreck:{kurz:"Dreck",...COND,icon:"i-trash",tile:"Dreck"}
 };
-const TILES=KIND==="bus"
-  ?[{label:"",types:["frueh","spaet","ausfall","fahrweise"]}]
-  :[{label:"Fahrplan",cls:"three",types:["spaet","ausfall","frueh"]},{label:"Im Zug oder an der Haltestelle",types:["belaestigt","betteln","gestank","dreck"]}];
+const TILES=[
+  {label:"Die Fahrt",types:["spaet","ausfall","frueh","fahrweise"]},
+  {label:"Im Fahrzeug oder an der Haltestelle",types:["belaestigt","betteln","gestank","dreck"]}
+];
 const TYPES={};TILES.forEach(g=>g.types.forEach(k=>{TYPES[k]=ALLTYPES[k]}));
 const FIRST=TILES[0].types[0];
 const DETAIL={
@@ -561,7 +561,7 @@ const S={
 };
 let incidents=store.get(K+"hist",[]);
 let pos=null, when=new Date(), whenManual=false;
-let stops=[], curStop=null, deps=[], lineMode={}, timeList=[], timeManual=false, dep=null, loadSeq=0;
+let stops=[], curStop=null, deps=[], timeList=[], timeManual=false, dep=null, loadSeq=0;
 let fromSel={linie:false,ri:false,soll:false};
 let variant=Array.from({length:8},Math.random);
 let detSel=new Set(), detFor="", bereichManual=false;
@@ -586,7 +586,8 @@ function effIst(){
   return ist;
 }
 const line=()=>needsLine()?$("linie").value.trim().toUpperCase():"";
-const bcls=l=>"badge"+(KIND==="bahn"&&/^S/i.test(l||"")?" s":"");
+// Linienschild: Blau für U-Bahn, Grün für S-Bahn, sonst Schwarz
+const bcls=x=>{const m=x==="S"?"SUBURBAN":x==="U"?"SUBWAY":(x?modeOf(x):"");return "badge"+(m==="SUBURBAN"?" s":m==="SUBWAY"?" u":"")};
 
 // ---------- Stadt ----------
 const GENERIC_GROUPS=[{key:"U",label:"U-Bahn",badge:"U",modes:["SUBWAY"]},{key:"T",label:"Straßenbahn",badge:"Tram",modes:["TRAM"]},{key:"S",label:"S-Bahn",badge:"S",modes:["SUBURBAN"]}];
@@ -603,7 +604,8 @@ let cityAuto=(()=>{
   return lp?cityAt(lp.lat,lp.lon):null;
 })();
 const curCity=()=>S.city!=="auto"?(CITIES.find(c=>c.id===S.city)||null):cityAuto;
-const groups=()=>{const c=curCity();return (c&&c.groups)||GENERIC_GROUPS};
+const BUSGROUP={key:"Bus",label:"Bus",badge:"Bus",modes:["BUS"]};
+const groups=()=>{const c=curCity();return [BUSGROUP,...((c&&c.groups)||GENERIC_GROUPS)]};
 const groupByKey=k=>groups().find(g=>g.key===k)||null;
 const groupByMode=m=>groups().find(g=>g.modes.includes(m))||null;
 function setCityFrom(lat,lon){
@@ -711,7 +713,7 @@ async function stopDepartures(stop){
   const ref=when.getTime(), from=new Date(ref-60*60000);
   const seen=new Map();
   for(const id of stop.ids.slice(0,2)){
-    const r=await tget("/v6/stoptimes",{stopId:id,time:from.toISOString().replace(/\.\d{3}Z$/,"Z"),n:200,window:6000,mode:V.modeParam,radius:V.radius,withAlerts:"false"});
+    const r=await tget("/v6/stoptimes",{stopId:id,time:from.toISOString().replace(/\.\d{3}Z$/,"Z"),n:400,window:6000,mode:V.modeParam,radius:V.radius,withAlerts:"false"});
     (r.stopTimes||[]).forEach(st=>{
       const k=st.tripId+"|"+(st.place&&st.place.scheduledDeparture);
       if(st.place&&st.place.scheduledDeparture&&!seen.has(k))seen.set(k,st);
@@ -796,14 +798,24 @@ async function onStop(keep){
     if(needsLine())openManual();
     render();return;
   }
-  fillSelect($("lineSel"),lines.map(l=>[l,V.ln(l)]),"Linie wählen");
+  fillLines(lines);
   const last=incidents.find(h=>h.stop===st.name&&lines.includes(h.linie));
   const pre=(prev&&lines.includes(prev.l)&&prev.l)||(last&&last.linie)||(lines.length===1?lines[0]:"");
   if(pre){$("lineSel").value=pre;onLine(prev?prev.d:"")}else render();
 }
+// Linien nach Verkehrsart gruppiert: erst die Bahnen der Stadt, dann Bus
+function fillLines(lines){
+  const sel=$("lineSel");sel.innerHTML="";sel.append(new Option("Linie wählen",""));
+  const order=[...groups().filter(g=>g!==BUSGROUP),BUSGROUP];
+  const by=new Map(order.map(g=>[g,[]])),rest=[];
+  lines.forEach(l=>{const g=order.find(g=>g.modes.includes(modeOf(l)));(g?by.get(g):rest).push(l)});
+  const add=(label,ls)=>{if(!ls.length)return;const og=document.createElement("optgroup");og.label=label;ls.forEach(l=>og.append(new Option(l,l)));sel.append(og)};
+  order.forEach(g=>add(g.label,by.get(g)));add("Weitere",rest);
+  sel.disabled=!lines.length;
+}
 // An der Haltestelle: die Bahn vorbelegen, wenn dort nur eine Art fährt
 function autoBereich(){
-  if(bereichManual||KIND!=="bahn")return;
+  if(bereichManual)return;
   const here=groups().filter(g=>deps.some(x=>g.modes.includes(x.mode)));
   const v=here.length===1?here[0].key:"";
   document.querySelectorAll('input[name="bereich"]').forEach(r=>{r.checked=r.value===v});
@@ -941,13 +953,7 @@ function target(op,T){
 function defOp(){
   if(S.empf==="custom")return S.custom.trim()?{name:"",mail:S.custom.trim()}:null;
   const c=curCity();if(!c)return null;
-  return c.ops[S.empf]||c.ops[c.def[KIND]]||null;
-}
-function guessMode(l){
-  if(KIND==="bus")return "BUS";
-  if(/^S\s?\d/i.test(l))return "SUBURBAN";
-  if(/^U\s?\d/i.test(l))return "SUBWAY";
-  return "TRAM";
+  return c.ops[S.empf]||c.ops[c.def.bus]||null;
 }
 function recipient(){
   const c=curCity(),T=typ(),need=needsLine(),l=line(),def=defOp();
@@ -963,7 +969,7 @@ function recipient(){
         ?`Betreiber laut Fahrplan: ${ag}. Für diesen Betrieb ist keine Adresse hinterlegt, die Beschwerde ginge an deinen Standard-Empfänger. Trag die richtige Adresse unter der Vorschau ein.`
         :`Betreiber laut Fahrplan: ${ag}. Für diesen Betrieb ist keine Adresse hinterlegt. Trag sie unter der Vorschau ein.`,true,ag);
     }
-    const mode=lineMode[l]||guessMode(l);
+    const mode=modeOf(l);
     const op=c&&c.byMode[mode]?c.ops[c.byMode[mode]]:null;
     if(op)return res(op,`Zuständig für ${V.ln(l)}: ${op.name}.`);
   }else if(!need){
@@ -1016,7 +1022,7 @@ function build(){
   const ortKurz=need?V.inV(l):`an der Haltestelle ${sName}`;
   const P=(slot,arr)=>arr[Math.floor(variant[slot]*arr.length)%arr.length];
   const sauberS=["Ich bitte Sie, die Reinigung zu veranlassen und mir kurz mitzuteilen, wie Sie solche Zustände künftig vermeiden.","Könnten Sie bitte eine Reinigung veranlassen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte lassen Sie dort reinigen und geben Sie mir eine kurze Rückmeldung."];
-  const sauberD=["Ich erwarte, dass Sie umgehend reinigen lassen und die Reinigungsintervalle überprüfen. Bitte teilen Sie mir mit, was Sie unternehmen.","Bitte sorgen Sie dafür, dass gereinigt wird und sich das nicht wiederholt, und geben Sie mir Rückmeldung.",`Ich bitte Sie nachdrücklich, für saubere ${KIND==="bus"?"Busse":"Züge"} und Haltestellen zu sorgen, und möchte über Ihre Maßnahmen informiert werden.`];
+  const sauberD=["Ich erwarte, dass Sie umgehend reinigen lassen und die Reinigungsintervalle überprüfen. Bitte teilen Sie mir mit, was Sie unternehmen.","Bitte sorgen Sie dafür, dass gereinigt wird und sich das nicht wiederholt, und geben Sie mir Rückmeldung.",`Ich bitte Sie nachdrücklich, für saubere Fahrzeuge und Haltestellen zu sorgen, und möchte über Ihre Maßnahmen informiert werden.`];
 
   const TX={
     frueh:{
@@ -1029,7 +1035,7 @@ function build(){
     spaet:{
       subject:[`Beschwerde: Verspätung ${GEN} am ${d}`,`${LN}: ${F} deutlich zu spät am ${d}${stop?` (${stop})`:""}`,`Verspäteter ${F} der Linie ${l} am ${d}`,prev.length?`Erneut Verspätung auf ${GEN} (${d})`:`${F} der Linie ${l} kam zu spät (${d})`],
       intro:[`hiermit möchte ich mich darüber beschweren, dass der ${F} der Linie ${l}${wohin} am ${wd}${an} deutlich später als im Fahrplan angegeben gekommen ist.`,`ich wende mich an Sie, weil der ${F} der Linie ${l}${wohin} am ${wd}${an} erheblich verspätet war.`,`am ${wd} musste ich${an} lange auf den ${F} der Linie ${l}${wohin} warten, der viel später als planmäßig kam.`,`leider muss ich Ihnen eine Verspätung melden: Der ${F} der Linie ${l}${wohin} kam am ${wd}${an} nicht zur Fahrplanzeit.`],
-      folge:["Durch die Verspätung habe ich unnötig Zeit verloren und konnte mich nicht auf den Fahrplan verlassen.","Wer auf Anschlüsse oder Termine angewiesen ist, kann mit solchen Verspätungen nicht planen.",KIND==="bus"?"Gerade bei Wind und Wetter ist langes Warten an der Haltestelle eine echte Zumutung.":"Durch die Verspätung war mein Anschluss gefährdet, und verlässliche Informationen am Bahnsteig gab es nicht."],
+      folge:["Durch die Verspätung habe ich unnötig Zeit verloren und konnte mich nicht auf den Fahrplan verlassen.","Wer auf Anschlüsse oder Termine angewiesen ist, kann mit solchen Verspätungen nicht planen.",curVeh().bus?"Gerade bei Wind und Wetter ist langes Warten an der Haltestelle eine echte Zumutung.":"Durch die Verspätung war mein Anschluss gefährdet, und verlässliche Informationen am Bahnsteig gab es nicht."],
       bitteS:["Ich bitte Sie, die Ursache zu prüfen und mir kurz mitzuteilen, wie Sie die Pünktlichkeit auf dieser Linie verbessern wollen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte prüfen Sie, woran es lag, und geben Sie mir eine kurze Rückmeldung."],
       bitteD:["Ich erwarte, dass Sie die Ursache klären und für einen verlässlichen Betrieb auf dieser Linie sorgen. Bitte teilen Sie mir mit, was Sie konkret unternehmen.","Ich bitte Sie nachdrücklich, die Pünktlichkeit auf dieser Linie zu verbessern, und möchte über Ihre Maßnahmen informiert werden.","Bitte sorgen Sie dafür, dass sich solche Verspätungen nicht wiederholen, und informieren Sie mich über das Ergebnis Ihrer Prüfung."]
     },
@@ -1070,7 +1076,7 @@ function build(){
     dreck:{
       subject:[`Beschwerde: Verschmutzung ${ortKurz} am ${d}`,`Dreck ${ortKurz}, ${d}`,prev.length?`Erneut Verschmutzung ${ortKurz} (${d})`:`Starke Verschmutzung ${ortKurz} (${d})`],
       intro:[`ich möchte mich über die Verschmutzung ${ortTxt} am ${wd} beschweren.`,`am ${wd} war es ${ortTxt} stark verschmutzt.`,`leider muss ich Ihnen mitteilen, dass es ${ortTxt} am ${wd} sehr dreckig war.`],
-      folge:["Für Fahrgäste ist dieser Zustand unangenehm.",`Saubere ${KIND==="bus"?"Busse":"Züge"} und Haltestellen gehören für mich zu einem ordentlichen Angebot.`],
+      folge:["Für Fahrgäste ist dieser Zustand unangenehm.","Saubere Fahrzeuge und Haltestellen gehören für mich zu einem ordentlichen Angebot."],
       bitteS:sauberS,bitteD:sauberD
     }
   }[T];
@@ -1134,13 +1140,14 @@ function missing(){
   const T=typ(),m=[],need=needsLine(),rc=recipient();
   if(!$("stop").value.trim())m.push("die Haltestelle");
   if(need&&!line())m.push("die Linie");
-  if(!need&&!bereich())m.push("welche Bahn dort hält");
+  if(!need&&!bereich())m.push("was dort hält");
   if(T==="ausfall"&&!$("soll").value)m.push("die ausgefallene Abfahrt");
   if(!S.name.trim())m.push("dein Name");
   if(!rc.mail&&!rc.form)m.push("ein Empfänger (Einstellungen)");
   return m;
 }
 function render(){
+  $("wagenHint").textContent=V.wagenHint;$("wagen").placeholder=V.wagenEx;
   const T=typ(),t=TYPES[T],need=needsLine(),l=line(),stop=$("stop").value.trim(),ist=$("ist").value;
   const soll=need?$("soll").value:"",ri=need?noRi($("richtung").value):"",g=need?null:groupByKey(bereich());
   $("n2").classList.toggle("done",!!stop);
@@ -1353,7 +1360,7 @@ function applyCity(){
   $("cityName").textContent=c?c.name:"";
   document.title=V.app+(c?" "+c.name:"");
   $("stop").placeholder="z. B. "+(ex.stop||"Hauptbahnhof");
-  $("linie").placeholder="z. B. "+((KIND==="bus"?ex.bus:ex.bahn)||V.lineEx);
+  $("linie").placeholder="z. B. "+(ex.bus&&ex.bahn?ex.bus.split(" oder ")[0]+" oder "+ex.bahn.split(" oder ")[0]:V.lineEx);
   $("richtung").placeholder="z. B. "+(ex.dir||"Hauptbahnhof");
   buildBerSeg();fillEmpf();cityHint();
   render();
@@ -1372,7 +1379,7 @@ function fillEmpf(){
     ops.forEach(([k,o])=>sel.append(new Option(`${o.name}${o.authority?", Verkehrsverbund":""} (${o.mail||"Kontaktformular"})`,k)));
   }
   sel.append(new Option("Andere Adresse","custom"));
-  sel.value=S.empf==="custom"?"custom":(c&&c.ops[S.empf]?S.empf:(c?c.def[KIND]:"custom"));
+  sel.value=S.empf==="custom"?"custom":(c&&c.ops[S.empf]?S.empf:(c?c.def.bus:"custom"));
   $("customWrap").hidden=sel.value!=="custom";
 }
 
@@ -1570,10 +1577,7 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 // ---------- Start ----------
-document.querySelectorAll('use[href="#i-h"]').forEach(u=>u.setAttribute("href","#i-h-"+KIND));
 $("appName").textContent=V.app;
-$("wagenHint").textContent=V.wagenHint;$("wagen").placeholder=V.wagenEx;
-$("wagen").setAttribute("inputmode",KIND==="bus"?"numeric":"text");
 $("gpsText").textContent="Mit deinem Standort schlägt die App Haltestellen in der Nähe vor.";
 syncStatusBar();
 initSettings();
