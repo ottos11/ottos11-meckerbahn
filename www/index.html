@@ -680,6 +680,11 @@ async function tget(path,params){
 const distM=(e,lat,lon)=>Math.hypot((e.lat-lat)*111320,(e.lon-lon)*111320*Math.cos(lat*Math.PI/180));
 const isWanted=x=>!Array.isArray(x.modes)||x.modes.some(m=>V.want.includes(m));
 
+// Haltestellennamen vergleichbar machen. In Hamburg heißt die Bushaltestelle am Bahnhof
+// "U S Jungfernstieg", sie gehört zu "Jungfernstieg". Zusätze in Klammern bleiben, denn
+// "Rathausmarkt (Petrikirche)" ist eine andere Haltestelle als "Rathausmarkt".
+const stopKey=n=>String(n||"").toLowerCase().replace(/^((u|s|s\+u|u\+s|bf\.?|bahnhof)\s+)+/,"").replace(/\s+/g," ").trim();
+const plainName=n=>stopKey(n)===String(n||"").toLowerCase().replace(/\s+/g," ").trim();
 async function nearbyStops(lat,lon){
   const m=await tget("/v1/reverse-geocode",{place:`${lat},${lon}`,type:"STOP",numResults:20});
   const by=new Map();
@@ -687,8 +692,9 @@ async function nearbyStops(lat,lon){
     if(x.type&&x.type!=="STOP")return;
     if(!isWanted(x))return;
     const d=Math.round(distM(x,lat,lon));if(d>800)return;
-    const o=by.get(x.name)||{name:x.name,ids:[],m:d,lat:x.lat,lon:x.lon};
-    o.ids.push(x.id);o.m=Math.min(o.m,d);by.set(x.name,o);
+    const k=stopKey(x.name),o=by.get(k)||{name:x.name,ids:[],m:d,lat:x.lat,lon:x.lon};
+    if(plainName(x.name))o.name=x.name;
+    o.ids.push(x.id);o.m=Math.min(o.m,d);by.set(k,o);
   });
   return [...by.values()].sort((x,y)=>x.m-y.m).slice(0,8).map(o=>({...o,label:`${o.name} (${o.m} m)`}));
 }
@@ -702,8 +708,9 @@ async function searchStops(text){
     if(x.type&&x.type!=="STOP")return;
     if(!isWanted(x))return;
     const a=(x.areas||[]).find(a=>a.default);const area=a?a.name:"";
-    const k=x.name+"|"+area;
+    const k=stopKey(x.name)+"|"+area;
     const o=by.get(k)||{name:x.name,ids:[],lat:x.lat,lon:x.lon,label:x.name+(area&&!x.name.includes(area)?", "+area:"")};
+    if(plainName(x.name)&&!plainName(o.name)){o.name=x.name;o.label=x.name+(area&&!x.name.includes(area)?", "+area:"")}
     o.ids.push(x.id);by.set(k,o);
   });
   return [...by.values()].slice(0,10);
@@ -720,7 +727,14 @@ async function stopDepartures(stop){
     });
   }
   const lo=ref-60*60000,hi=ref+40*60000;
-  return [...seen.values()].filter(st=>{const t=new Date(st.place.scheduledDeparture).getTime();return t>=lo&&t<=hi});
+  // Der Umkreis erfasst auch Nachbarhaltestellen. Behalten wird nur, was zu dieser Haltestelle gehört.
+  const want=stopKey(stop.name);
+  const mine=st=>{const pl=st.place||{},id=pl.stopId||"";
+    return stopKey(pl.name)===want||stop.ids.some(x=>id===x||id.startsWith(x+":"))};
+  let all=[...seen.values()];
+  // Nur wenn die Daten gar keine Haltestellennamen liefern, bleibt der ganze Umkreis.
+  if(all.some(st=>st.place&&st.place.name))all=all.filter(mine);
+  return all.filter(st=>{const t=new Date(st.place.scheduledDeparture).getTime();return t>=lo&&t<=hi});
 }
 const lineOf=st=>(st.routeShortName||st.displayName||"").replace(/^(Bus|Tram|STR)\s+/i,"").trim();
 const dirOf=st=>(st.headsign||(st.tripTo&&st.tripTo.name)||"").trim();
