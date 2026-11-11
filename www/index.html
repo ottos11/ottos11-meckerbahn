@@ -385,7 +385,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
       </div>
     </section>
 
-    <footer class="credits">Fahrplan- und Echtzeitdaten: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.</footer>
+    <footer class="credits">Sollfahrplan: <a href="https://www.delfi.de/" target="_blank" rel="noopener">DELFI e.V.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, aufbereitet. Echtzeit und weitere Städte: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.</footer>
   </main>
 
   <!-- ===================== Verlauf ===================== -->
@@ -454,7 +454,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
     <section class="group about">
       <h3 style="color:var(--ink)">Über die App</h3>
       <p>Dein Standort geht nur an den Fahrplandienst Transitous, um Haltestellen und Abfahrten zu finden. Name, Verlauf und Einstellungen bleiben auf diesem Handy. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang deiner Mail.</p>
-      <p>Fahrplan- und Echtzeitdaten: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Schrift: Barlow (SIL Open Font License).</p>
+      <p>Sollfahrplan: <a href="https://www.delfi.de/" target="_blank" rel="noopener">DELFI e.V.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, aufbereitet. Echtzeit und weitere Städte: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Schrift: Barlow (SIL Open Font License).</p>
       <p id="versionLine"></p>
     </section>
   </main>
@@ -709,7 +709,76 @@ const stopKey=n=>String(n||"").toLowerCase()
   .replace(/\bhauptbahnhof\b/g,"hbf").replace(/\b(bahnhof|bhf|bf)\b\.?/g,"bf").replace(/[.,]/g," ")
   .replace(/\s+/g," ").trim().replace(/^((u|s|s\+u|u\+s|bf)\s+)+/,"").trim();
 const plainName=n=>!/^(u|s|s\+u|u\+s|bf\.?|bahnhof)\s/i.test(String(n||"").trim());
+// ---------- Fahrplandateien: Sollfahrplan von DELFI, je Stadt aufbereitet ----------
+// Der Workflow "Fahrplan aufbereiten" erzeugt sie jede Woche. Für Städte ohne Dateien
+// fragt die App weiter bei Transitous.
+const FPBASE="https://raw.githubusercontent.com/ottos11/ottos11-meckerbahn/fahrplan/";
+let fpMan=null,fpManT=0;const fpIdx={},fpFiles=new Map();
+async function jget(u){const r=await fetch(u,{cache:"no-cache"});if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}
+async function fpManifest(){
+  if(fpMan&&Date.now()-fpManT<3*3600e3)return fpMan;
+  try{fpMan=await jget(FPBASE+"manifest.json");fpManT=Date.now()}catch(e){if(!fpMan)fpMan={cities:{}}}
+  return fpMan;
+}
+async function fpCity(c){
+  if(!c)return null;
+  try{
+    const m=await fpManifest();
+    if(!m.cities||!m.cities[c.id])return null;
+    const v=String(m.built||"").replace(/\D/g,"");
+    if(fpIdx[c.id]&&fpIdx[c.id].v===v)return fpIdx[c.id];
+    const x=await jget(FPBASE+c.id+"/index.json?v="+v);
+    x.v=v;x.city=c.id;fpIdx[c.id]=x;return x;
+  }catch(e){return null}
+}
+const fpStop=(fi,s,lat,lon)=>({name:s[1],ids:[s[0]],lat:s[2],lon:s[3],modes:s[4],fp:fi.city,...(lat!==undefined?{m:Math.round(distM({lat:s[2],lon:s[3]},lat,lon))}:{})});
+function fpNearby(fi,lat,lon){
+  return fi.stops.map(s=>fpStop(fi,s,lat,lon)).filter(o=>o.m<=800&&isWanted(o))
+    .sort((a,b)=>a.m-b.m).slice(0,8).map(o=>({...o,label:`${o.name} (${o.m} m)`}));
+}
+function fpSearch(fi,text,near){
+  const q=stopKey(text),ql=String(text).toLowerCase().trim();
+  if(!q&&!ql)return [];
+  const score=n=>{const k=stopKey(n),l=n.toLowerCase();
+    if(k===q)return 0;if(k.startsWith(q)||l.startsWith(ql))return 1;
+    if(new RegExp("(^|[\\s,(/-])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(k))return 2;
+    if(k.includes(q)||l.includes(ql))return 3;return 9};
+  return fi.stops.map(s=>({s,sc:score(s[1])})).filter(x=>x.sc<9)
+    .map(x=>({...fpStop(fi,x.s,near&&near.lat,near&&near.lon),sc:x.sc}))
+    .filter(isWanted).sort((a,b)=>a.sc-b.sc||(a.m||0)-(b.m||0)||a.name.localeCompare(b.name,"de"))
+    .slice(0,10).map(o=>({...o,label:o.name}));
+}
+async function fpDepartures(stop){
+  const fi=fpIdx[stop.fp]||await fpCity(CITIES.find(c=>c.id===stop.fp));
+  if(!fi)throw new Error("keine Fahrplandateien");
+  const id=stop.ids[0],key=fi.city+"/"+id+"?"+fi.v;
+  let f=fpFiles.get(key);
+  if(!f){f=await jget(FPBASE+fi.city+"/s/"+encodeURIComponent(id)+".json?v="+fi.v);fpFiles.set(key,f)}
+  const ref=when.getTime(),lo=ref-60*60000,hi=ref+40*60000;
+  const [fy,fm,fd]=fi.from.split("-").map(Number);
+  const out=[];
+  // Abfahrten nach Mitternacht gehören zum Betriebstag davor, deshalb auch den Vortag prüfen
+  for(const back of [1,0]){
+    const d=new Date(when.getFullYear(),when.getMonth(),when.getDate()-back);
+    const i=Math.round((d-new Date(fy,fm-1,fd))/864e5);
+    if(i<0||i>=fi.days)continue;
+    for(const [pi,mask,mins] of f.d){
+      if(Math.floor(mask/2**i)%2!==1)continue;
+      const [line,mode,ag,dir]=f.p[pi];
+      for(const mn of mins){
+        const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,mn).getTime();
+        if(t<lo||t>hi)continue;
+        out.push({tripId:`${id}:${pi}:${i}:${mn}`,routeShortName:line,headsign:dir,mode,agencyName:ag,
+          place:{name:stop.name,stopId:id,lat:stop.lat,lon:stop.lon,scheduledDeparture:new Date(t).toISOString()}});
+      }
+    }
+  }
+  return out;
+}
+
 async function nearbyStops(lat,lon){
+  const fi=await fpCity(cityAt(lat,lon));
+  if(fi)return fpNearby(fi,lat,lon);
   const m=await tget("/v1/reverse-geocode",{place:`${lat},${lon}`,type:"STOP",numResults:20});
   const by=new Map();
   (m||[]).forEach(x=>{
@@ -726,6 +795,8 @@ async function searchStops(text){
   const p={text,type:"STOP",language:"de",numResults:15};
   const c0=curCity();const near=pos||store.get(K+"lastPos",null)||(c0?{lat:c0.center[0],lon:c0.center[1]}:null);
   if(near)p.place=`${near.lat},${near.lon}`;
+  const fi=await fpCity((near&&cityAt(near.lat,near.lon))||c0);
+  if(fi)return fpSearch(fi,text,near);
   const m=await tget("/v1/geocode",p);
   const by=new Map();
   (m||[]).forEach(x=>{
@@ -741,6 +812,7 @@ async function searchStops(text){
 }
 async function stopDepartures(stop){
   // Abfahrten rund um den Zeitpunkt des Vorfalls: 60 Minuten davor bis 40 Minuten danach
+  if(stop.fp)return fpDepartures(stop);
   const ref=when.getTime(), from=new Date(ref-60*60000);
   const seen=new Map();
   for(const id of stop.ids.slice(0,2)){
@@ -770,7 +842,7 @@ const isCancelled=x=>!!(x.cancelled||x.tripCancelled||(x.place&&x.place.cancelle
 
 function recentStops(){return store.get(K+"stops",[])}
 function setStops(list,groupLabel){
-  const rec=recentStops().filter(r=>!list.some(s=>s.name===r.name)).map(r=>({name:r.name,ids:r.ids,lat:r.lat,lon:r.lon,label:r.name}));
+  const rec=recentStops().filter(r=>!list.some(s=>s.name===r.name)).map(r=>({name:r.name,ids:r.ids,lat:r.lat,lon:r.lon,fp:r.fp,label:r.name}));
   stops=[...list,...rec];
   const sel=$("stopSel");sel.innerHTML="";
   sel.append(new Option("Haltestelle wählen",""));
@@ -1267,7 +1339,7 @@ function saveIncident(){
   incidents.push(inc);incidents.sort((a,b)=>b.ts-a.ts);
   store.set(K+"hist",incidents);
   if(curStop&&curStop.name===inc.stop){
-    const rec=[{name:curStop.name,ids:curStop.ids,lat:curStop.lat,lon:curStop.lon},...recentStops().filter(r=>r.name!==curStop.name)].slice(0,6);
+    const rec=[{name:curStop.name,ids:curStop.ids,lat:curStop.lat,lon:curStop.lon,fp:curStop.fp},...recentStops().filter(r=>r.name!==curStop.name)].slice(0,6);
     store.set(K+"stops",rec);
   }
   savedKey=k;render();

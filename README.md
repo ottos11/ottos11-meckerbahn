@@ -18,7 +18,7 @@ Zum Ausprobieren gibt es unter Einstellungen einen Testmodus: Dann gehen alle Be
 
 Der Verlauf sammelt alle Vorfälle nach Linie und Haltestelle. Frühere Fälle stehen in der nächsten Beschwerde, ab zwei Vorfällen gibt es eine Sammelbeschwerde.
 
-Fahrplan- und Echtzeitdaten kommen von [Transitous](https://transitous.org/). Name, Verlauf und Einstellungen bleiben auf dem Gerät. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang der Mail oder per Upload im Formular.
+Für Augsburg und Hamburg kommt der Fahrplan aus eigenen Fahrplandateien (siehe unten), für die anderen Städte und für Echtzeitdaten von [Transitous](https://transitous.org/). Name, Verlauf und Einstellungen bleiben auf dem Gerät. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang der Mail oder per Upload im Formular.
 
 ## Städte
 
@@ -36,6 +36,16 @@ Die App erkennt die Stadt am Standort und schickt die Beschwerde an den zuständ
 Bei Betrieben mit Formular kopiert die App den Text und öffnet das Formular. In anderen Städten funktioniert die App auch, die Adresse des Betriebs trägt man dann einmal selbst ein. Die Stadt lässt sich unter Einstellungen auch fest einstellen.
 
 Neue Stadt: Eintrag in `www/cities.js` ergänzen. Welche Namen der Fahrplandienst für die Betriebe einer Stadt verwendet, zeigt der Workflow „Betreiber auflisten“ (unter Actions von Hand starten, Orte als `Name|Breite,Länge`).
+
+## Fahrplandateien
+
+Der Workflow „Fahrplan aufbereiten“ (`.github/workflows/fahrplan.yml`) lädt jeden Dienstag den Sollfahrplan Deutschland von DELFI (GTFS, rund 500 MB) und erzeugt mit `tools/fahrplan.py` kleine Dateien je Stadt: eine Liste aller Haltestellen und je Haltestelle die Abfahrten von Bus, U-, S- und Straßenbahn. Sie liegen im Zweig `fahrplan`, die App lädt nur die Haltestelle, die gerade gebraucht wird.
+
+Die Dateien reichen 14 Tage zurück und 21 Tage voraus, damit sich Vorfälle auch nachträglich melden lassen. Echtzeit enthalten sie nicht.
+
+Welche Städte aufbereitet werden, steht im Workflow (`staedte`, zurzeit Augsburg und Hamburg). Für alle Städte aus `www/cities.js` das Feld leer lassen.
+
+Lizenz der Daten: DELFI e.V., CC BY 4.0. Die App nennt die Quelle unter „Über“.
 
 ## Gestaltung
 
@@ -58,6 +68,7 @@ Jede APK wird mit demselben Schlüssel signiert (`signing/debug.keystore`, Stand
 - `capacitor.config.json`: App-Name und Paket-ID
 - `scripts/patch-android.sh`: ergänzt GPS-Rechte, Farben und das App-Symbol im Android-Projekt
 - `.github/workflows/build-apk.yml`: baut die APK
+- `.github/workflows/fahrplan.yml` und `tools/fahrplan.py`: erzeugen die Fahrplandateien
 - `.github/workflows/betreiber.yml`: listet die Betriebe einer Stadt aus dem Fahrplandienst
 - `.github/workflows/haltestelle.yml`: zeigt, zu welcher Haltestelle die Abfahrten an einem Ort gehören
 
