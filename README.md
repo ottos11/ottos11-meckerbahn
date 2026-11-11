@@ -14,6 +14,8 @@ So läuft eine Meldung ab:
 3. Linie, Richtung und Abfahrt aus dem Fahrplan wählen. Die Haltestelle zeigt alle Linien, nach Bus, U-Bahn, S-Bahn und Tram sortiert. Bei Meldungen an der Haltestelle reicht die Angabe, was dort hält.
 4. Bis zu drei Fotos anhängen, Beschwerde prüfen und per Mail-App oder Kontaktformular abschicken.
 
+Zum Ausprobieren gibt es unter Einstellungen einen Testmodus: Dann gehen alle Beschwerden mit „[Test]“ im Betreff an die eigene Adresse statt an den Verkehrsbetrieb.
+
 Der Verlauf sammelt alle Vorfälle nach Linie und Haltestelle. Frühere Fälle stehen in der nächsten Beschwerde, ab zwei Vorfällen gibt es eine Sammelbeschwerde.
 
 Fahrplan- und Echtzeitdaten kommen von [Transitous](https://transitous.org/). Name, Verlauf und Einstellungen bleiben auf dem Gerät. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang der Mail oder per Upload im Formular.
@@ -57,7 +59,14 @@ Jede APK wird mit demselben Schlüssel signiert (`signing/debug.keystore`, Stand
 - `scripts/patch-android.sh`: ergänzt GPS-Rechte, Farben und das App-Symbol im Android-Projekt
 - `.github/workflows/build-apk.yml`: baut die APK
 - `.github/workflows/betreiber.yml`: listet die Betriebe einer Stadt aus dem Fahrplandienst
+- `.github/workflows/haltestelle.yml`: zeigt, zu welcher Haltestelle die Abfahrten an einem Ort gehören
 
 Die Paket-ID `de.ottos11.meckerbahn` stammt aus der Zeit, als Bus und Bahn noch zwei Apps waren. Sie bleibt, damit sich die App als Update über die bisherige Meckerbahn installieren lässt.
 
 Fotos hängt die App über das Plugin `capacitor-email-composer` an die Mail. Das Android-Projekt (`android/`) wird beim Build jedes Mal neu erzeugt und liegt deshalb nicht im Repo.
+
+## Lizenz
+
+Der Code steht unter der [MIT-Lizenz](LICENSE). Die Schrift Barlow steht unter der SIL Open Font License (`www/fonts/OFL.txt`).
+
+Die Fahrplandaten kommen von Transitous. Transitous erlaubt die Nutzung nur für nicht kommerzielle Open-Source-Projekte und verlangt einen sichtbaren Hinweis auf [seine Datenquellen](https://transitous.org/sources/) sowie die Namensnennung von OpenStreetMap. Beides steht in der App. Wer die App kommerziell nutzen will, etwa mit Werbung, braucht eine andere Quelle für die Fahrplandaten.

@@ -139,6 +139,7 @@ details.more .inner{display:flex;flex-direction:column;gap:12px;padding-top:8px}
 .times dd{font:700 1.15rem/1.2 var(--f-display);font-variant-numeric:tabular-nums}
 .badge.s{background:var(--s-green);color:var(--on-s-green)}
 .badge.u{background:var(--u-blue);color:var(--on-u-blue)}
+.testbanner{margin:0 0 14px}
 .pill{display:inline-block;font-weight:600;font-size:.85rem;padding:3px 10px;border-radius:999px;background:var(--sign-yellow);color:var(--on-yellow)}
 
 /* Fotos */
@@ -241,6 +242,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
 
   <!-- ===================== Melden ===================== -->
   <main id="v-melden">
+    <p class="note warn testbanner" id="testBanner" hidden></p>
     <section class="step first" aria-labelledby="h1a">
       <div class="step-head"><span class="num done" aria-hidden="true">1</span><h2 id="h1a">Was ist passiert?</h2></div>
       <div class="sub" id="typeGroups"></div>
@@ -438,6 +440,14 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
       </div>
     </section>
     <section class="group">
+      <h3>Testen</h3>
+      <label class="switch"><span>Testmodus<small>Alle Beschwerden gehen an deine eigene Adresse statt an den Verkehrsbetrieb, mit „[Test]“ im Betreff. So lässt sich die App ausprobieren, ohne echte Beschwerden zu verschicken.</small></span><input type="checkbox" id="testOn"></label>
+      <div class="field" id="testWrap" hidden>
+        <label for="testMail">Deine E-Mail-Adresse</label>
+        <input class="ctl" id="testMail" type="email" inputmode="email" placeholder="du@beispiel.de" autocomplete="email">
+      </div>
+    </section>
+    <section class="group">
       <h3>Standort</h3>
       <label class="switch"><span>Beim Öffnen automatisch erfassen<small>Gilt, sobald du den Standortzugriff einmal erlaubt hast.</small></span><input type="checkbox" id="autoLoc" checked></label>
     </section>
@@ -501,22 +511,32 @@ let lineMode={};
 function guessMode(l){l=String(l||"");if(/^S\s?\d/i.test(l))return "SUBURBAN";if(/^U\s?\d/i.test(l))return "SUBWAY";return "BUS"}
 const modeOf=l=>lineMode[String(l||"").toUpperCase()]||guessMode(l);
 // Wörter für die Mail, passend zum Fahrzeug
+// Artikel je Geschlecht: der Bus, der Zug, aber die Straßenbahn
+const ART_M={der:"der",Der:"Der",den:"den",dem:"dem",im:"im",dieser:"dieser",zum:"zum",verspaetet:"Verspäteter"};
+const ART_F={der:"die",Der:"Die",den:"die",dem:"der",im:"in der",dieser:"diese",zum:"zur",verspaetet:"Verspätete"};
 const VEH={
-  BUS:{bus:true,fz:"Bus",fzPl:"Busse",plat:"an der Haltestelle",ermitteln:"So kann der Betrieb Bus und Fahrpersonal ermitteln.",wagenHint:"Steht innen über der Tür oder vorn im Bus.",wagenEx:"z. B. 7804"},
-  RAIL:{bus:false,fz:"Zug",fzPl:"Züge",plat:"am Bahnsteig",ermitteln:"So kann der Betrieb den Zug ermitteln.",wagenHint:"Steht innen im Wagen, meist an den Wagenenden. Damit findet der Betrieb den Wagen sicher.",wagenEx:"z. B. 4742"}
+  BUS:{art:ART_M,bus:true,fz:"Bus",fzPl:"Busse",plat:"an der Haltestelle",ermitteln:"So kann der Betrieb Bus und Fahrpersonal ermitteln.",wagenHint:"Steht innen über der Tür oder vorn im Bus.",wagenEx:"z. B. 7804"},
+  RAIL:{art:ART_M,bus:false,fz:"Zug",fzPl:"Züge",plat:"am Bahnsteig",ermitteln:"So kann der Betrieb den Zug ermitteln.",wagenHint:"Steht innen im Wagen, meist an den Wagenenden. Damit findet der Betrieb den Wagen sicher.",wagenEx:"z. B. 4742"}
 };
-VEH.TRAM={...VEH.RAIL,plat:"an der Haltestelle"};
-const veh=m=>m==="BUS"?VEH.BUS:m==="TRAM"?VEH.TRAM:VEH.RAIL;
+VEH.TRAM={...VEH.RAIL,art:ART_F,plat:"an der Haltestelle"};
+// Die Straßenbahn heißt so, wie die Stadt sie nennt: Tram, Stadtbahn oder Straßenbahn
+function tramWord(){const c=curCity(),g=c&&c.groups&&c.groups.find(g=>g.modes.includes("TRAM"));return g?g.label:"Straßenbahn"}
+const veh=m=>{
+  if(m==="BUS")return VEH.BUS;
+  if(m!=="TRAM")return VEH.RAIL;
+  const w=tramWord();
+  return{...VEH.TRAM,fz:w,fzPl:w+(/bahn$/.test(w)?"en":"s"),ermitteln:`So kann der Betrieb die ${w} ermitteln.`};
+};
 const curVeh=()=>veh(modeOf(line()));
 const V={
   app:"Meckerlinie",which:"Welche Linie?",stopWord:"Haltestelle",depWord:"Abfahrten",
   want:["BUS","SUBWAY","SUBURBAN","TRAM","METRO"],modeParam:"BUS,SUBWAY,SUBURBAN,TRAM",radius:250,lineEx:"5 oder U1",
   get fz(){return curVeh().fz},get fzPl(){return curVeh().fzPl},get plat(){return curVeh().plat},
-  get ermitteln(){return curVeh().ermitteln},get wagenHint(){return curVeh().wagenHint},get wagenEx(){return curVeh().wagenEx},
+  get ermitteln(){return curVeh().ermitteln},get art(){return curVeh().art},get wagenHint(){return curVeh().wagenHint},get wagenEx(){return curVeh().wagenEx},
   ln:l=>veh(modeOf(l)).bus?"Linie "+l:lnBahn(l),
-  subj:l=>veh(modeOf(l)).bus?"Bus Linie "+l:lnBahn(l),
+  subj:l=>{const v=veh(modeOf(l));return v.bus?"Bus Linie "+l:v.art===ART_F?v.fz+" "+lnBahn(l):lnBahn(l)},
   gen:l=>"der "+(veh(modeOf(l)).bus?"Linie "+l:lnBahn(l)),
-  inV:l=>veh(modeOf(l)).bus?"im Bus der Linie "+l:"in der "+lnBahn(l)
+  inV:l=>{const v=veh(modeOf(l));return v.bus?"im Bus der Linie "+l:v.art===ART_F?`in der ${v.fz} der Linie ${l}`:"in der "+lnBahn(l)}
 };
 const okMail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -557,7 +577,8 @@ const S={
   ton:store.get(K+"ton","sachlich"),
   autoLoc:store.get(K+"autoLoc",true),
   opMails:store.get(K+"opMails",{}),
-  city:store.get(K+"city","auto")
+  city:store.get(K+"city","auto"),
+  test:store.get(K+"test",{on:false,mail:""})
 };
 let incidents=store.get(K+"hist",[]);
 let pos=null, when=new Date(), whenManual=false;
@@ -913,11 +934,11 @@ function onTime(){
   }else if(df===null){
     showNote("","Für diese Fahrt gibt es keine Echtzeitdaten. Die Mail stützt sich auf deine Beobachtung.");
   }else if(T==="frueh"){
-    if(df<0)showNote("good",`Laut Echtzeitdaten ist dieser ${V.fz} um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} zu früh.`+beleg);
-    else showNote("",df>0?`Laut Echtzeitdaten war dieser ${V.fz} ${mins(df)} verspätet (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:`Laut Echtzeitdaten war dieser ${V.fz} pünktlich. Deine Beobachtung zählt trotzdem.`);
+    if(df<0)showNote("good",`Laut Echtzeitdaten ist ${V.art.dieser} ${V.fz} um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} zu früh.`+beleg);
+    else showNote("",df>0?`Laut Echtzeitdaten war ${V.art.dieser} ${V.fz} ${mins(df)} verspätet (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:`Laut Echtzeitdaten war ${V.art.dieser} ${V.fz} pünktlich. Deine Beobachtung zählt trotzdem.`);
   }else{
-    if(df>0)showNote("good",`Laut Echtzeitdaten kam dieser ${V.fz} um ${hm(dep.rt)} Uhr, ${mins(df)} zu spät.`+beleg);
-    else showNote("",df<0?`Laut Echtzeitdaten ist dieser ${V.fz} ${mins(-df)} zu früh abgefahren (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:`Laut Echtzeitdaten war dieser ${V.fz} pünktlich. Deine Beobachtung zählt trotzdem.`);
+    if(df>0)showNote("good",`Laut Echtzeitdaten kam ${V.art.dieser} ${V.fz} um ${hm(dep.rt)} Uhr, ${mins(df)} zu spät.`+beleg);
+    else showNote("",df<0?`Laut Echtzeitdaten ist ${V.art.dieser} ${V.fz} ${mins(-df)} zu früh abgefahren (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:`Laut Echtzeitdaten war ${V.art.dieser} ${V.fz} pünktlich. Deine Beobachtung zählt trotzdem.`);
   }
   render();
 }
@@ -974,7 +995,15 @@ function defOp(){
   const c=curCity();if(!c)return null;
   return c.ops[S.empf]||c.ops[c.def.bus]||null;
 }
+// Im Testmodus geht alles an die eigene Adresse. Der Verlauf merkt sich trotzdem den echten Empfänger.
 function recipient(){
+  const r=realRecipient();
+  if(!S.test.on)return r;
+  const real=r.mail||(r.form?`das Kontaktformular${r.name?" von "+r.name:""}`:"");
+  const tm=S.test.mail.trim();
+  return{name:"",mail:okMail(tm)?tm:"",form:"",note:`Testmodus: Die Beschwerde geht an dich${real?" statt an "+real:""}.`,warn:true,ask:""};
+}
+function realRecipient(){
   const c=curCity(),T=typ(),need=needsLine(),l=line(),def=defOp();
   const res=(op,note,warn,ask)=>({...target(op,T),note:note||"",warn:!!warn,ask:ask||""});
   if(!S.auto)return res(def,"");
@@ -1007,7 +1036,7 @@ const gkey=h=>h.linie||"@"+(h.stop||"");
 function currentIncident(){
   const need=needsLine();
   return{linie:line(),typ:typ(),ort:isCond()?ort():"zug",bereich:need?"":bereich(),ts:when.getTime(),ist:effIst(),
-    soll:need?$("soll").value:"",stop:$("stop").value.trim(),ri:need?noRi($("richtung").value):"",to:toOf(recipient()),fotos:photos.length};
+    soll:need?$("soll").value:"",stop:$("stop").value.trim(),ri:need?noRi($("richtung").value):"",to:toOf(realRecipient()),fotos:photos.length};
 }
 const keyOf=h=>[gkey(h),h.typ||FIRST,ymd(new Date(h.ts)),h.soll||h.ist||""].join("|");
 function incLine(h){
@@ -1017,7 +1046,7 @@ function incLine(h){
 function build(){
   const T=typ(),t=TYPES[T],cond=!!t.cond,need=needsLine();
   const l=need?(line()||"[Linie]"):"";
-  const F=V.fz,LN=V.ln(l),GEN=V.gen(l),SUBJ=V.subj(l);
+  const F=V.fz,A=V.art,LN=V.ln(l),GEN=V.gen(l),SUBJ=V.subj(l);
   const stop=$("stop").value.trim();
   const ist=effIst(), soll=need?$("soll").value:"";
   const ri=need?noRi($("richtung").value):"";
@@ -1037,7 +1066,7 @@ function build(){
   const wohin=ri?` (Richtung ${ri})`:"";
   const um=soll?` um ${soll} Uhr`:"";
   const sName=stop||"[Haltestelle]";
-  const ortTxt=need?`im ${F} der Linie ${l}${wohin}`:`an der ${g?g.label+"-":""}Haltestelle ${sName}`;
+  const ortTxt=need?`${A.im} ${F} der Linie ${l}${wohin}`:`an der ${g?g.label+"-":""}Haltestelle ${sName}`;
   const ortKurz=need?V.inV(l):`an der Haltestelle ${sName}`;
   const P=(slot,arr)=>arr[Math.floor(variant[slot]*arr.length)%arr.length];
   const sauberS=["Ich bitte Sie, die Reinigung zu veranlassen und mir kurz mitzuteilen, wie Sie solche Zustände künftig vermeiden.","Könnten Sie bitte eine Reinigung veranlassen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte lassen Sie dort reinigen und geben Sie mir eine kurze Rückmeldung."];
@@ -1046,28 +1075,28 @@ function build(){
   const TX={
     frueh:{
       subject:[`Beschwerde: ${SUBJ} zu früh abgefahren am ${d}`,`${LN}: verfrühte Abfahrt am ${d}${stop?` (${stop})`:""}`,`Zu frühe Abfahrt ${GEN} am ${d}`,prev.length?`Erneut zu frühe Abfahrt ${GEN} (${d})`:`${F} der Linie ${l} vor Fahrplanzeit abgefahren (${d})`],
-      intro:[`hiermit möchte ich mich darüber beschweren, dass der ${F} der Linie ${l}${wohin} am ${wd}${an} vor der planmäßigen Abfahrtszeit abgefahren ist.`,`ich wende mich an Sie, weil der ${F} der Linie ${l}${wohin} am ${wd}${an} zu früh losgefahren ist.`,`am ${wd} ist mir der ${F} der Linie ${l}${wohin}${an} vor der Nase weggefahren, und zwar vor der im Fahrplan angegebenen Zeit.`,`leider muss ich Ihnen mitteilen, dass der ${F} der Linie ${l}${wohin} am ${wd}${an} früher abgefahren ist, als es der Fahrplan vorsieht.`],
-      folge:[`Eine zu frühe Abfahrt ist für Fahrgäste besonders ärgerlich, weil man auch bei pünktlichem Erscheinen ${V.plat} den ${F} verpasst.`,`Gerade eine verfrühte Abfahrt trifft diejenigen, die sich auf den Fahrplan verlassen und rechtzeitig ${V.plat} sind.`,`Mit Verspätungen kann man rechnen, mit einer zu frühen Abfahrt nicht. Wer pünktlich da ist, steht dann trotzdem ohne ${F} da.`,`Für mich bedeutete das eine unnötige Wartezeit bis zum nächsten ${F}, obwohl ich rechtzeitig ${V.plat} war.`],
+      intro:[`hiermit möchte ich mich darüber beschweren, dass ${A.der} ${F} der Linie ${l}${wohin} am ${wd}${an} vor der planmäßigen Abfahrtszeit abgefahren ist.`,`ich wende mich an Sie, weil ${A.der} ${F} der Linie ${l}${wohin} am ${wd}${an} zu früh losgefahren ist.`,`am ${wd} ist mir ${A.der} ${F} der Linie ${l}${wohin}${an} vor der Nase weggefahren, und zwar vor der im Fahrplan angegebenen Zeit.`,`leider muss ich Ihnen mitteilen, dass ${A.der} ${F} der Linie ${l}${wohin} am ${wd}${an} früher abgefahren ist, als es der Fahrplan vorsieht.`],
+      folge:[`Eine zu frühe Abfahrt ist für Fahrgäste besonders ärgerlich, weil man auch bei pünktlichem Erscheinen ${V.plat} ${A.den} ${F} verpasst.`,`Gerade eine verfrühte Abfahrt trifft diejenigen, die sich auf den Fahrplan verlassen und rechtzeitig ${V.plat} sind.`,`Mit Verspätungen kann man rechnen, mit einer zu frühen Abfahrt nicht. Wer pünktlich da ist, steht dann trotzdem ohne ${F} da.`,`Für mich bedeutete das eine unnötige Wartezeit bis ${A.zum} nächsten ${F}, obwohl ich rechtzeitig ${V.plat} war.`],
       bitteS:["Ich bitte Sie, den Vorfall zu prüfen, das Fahrpersonal auf die Einhaltung der Abfahrtszeiten hinzuweisen und mir kurz mitzuteilen, welche Maßnahmen Sie ergreifen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte prüfen Sie den Vorfall und weisen Sie das Fahrpersonal auf die Abfahrtszeiten hin. Eine kurze Antwort wäre nett."],
       bitteD:["Ich erwarte, dass Sie dem nachgehen und das Fahrpersonal verbindlich auf die Einhaltung der Abfahrtszeiten hinweisen. Bitte teilen Sie mir mit, welche konkreten Maßnahmen Sie ergreifen.","Ich bitte Sie nachdrücklich, das Problem abzustellen. Über die Ergebnisse Ihrer Prüfung und die getroffenen Maßnahmen möchte ich informiert werden.",`Bitte sorgen Sie dafür, dass ${V.fzPl} nicht mehr vor der Fahrplanzeit abfahren, und informieren Sie mich, was Sie unternommen haben.`]
     },
     spaet:{
-      subject:[`Beschwerde: Verspätung ${GEN} am ${d}`,`${LN}: ${F} deutlich zu spät am ${d}${stop?` (${stop})`:""}`,`Verspäteter ${F} der Linie ${l} am ${d}`,prev.length?`Erneut Verspätung auf ${GEN} (${d})`:`${F} der Linie ${l} kam zu spät (${d})`],
-      intro:[`hiermit möchte ich mich darüber beschweren, dass der ${F} der Linie ${l}${wohin} am ${wd}${an} deutlich später als im Fahrplan angegeben gekommen ist.`,`ich wende mich an Sie, weil der ${F} der Linie ${l}${wohin} am ${wd}${an} erheblich verspätet war.`,`am ${wd} musste ich${an} lange auf den ${F} der Linie ${l}${wohin} warten, der viel später als planmäßig kam.`,`leider muss ich Ihnen eine Verspätung melden: Der ${F} der Linie ${l}${wohin} kam am ${wd}${an} nicht zur Fahrplanzeit.`],
+      subject:[`Beschwerde: Verspätung ${GEN} am ${d}`,`${LN}: ${F} deutlich zu spät am ${d}${stop?` (${stop})`:""}`,`${A.verspaetet} ${F} der Linie ${l} am ${d}`,prev.length?`Erneut Verspätung auf ${GEN} (${d})`:`${F} der Linie ${l} kam zu spät (${d})`],
+      intro:[`hiermit möchte ich mich darüber beschweren, dass ${A.der} ${F} der Linie ${l}${wohin} am ${wd}${an} deutlich später als im Fahrplan angegeben gekommen ist.`,`ich wende mich an Sie, weil ${A.der} ${F} der Linie ${l}${wohin} am ${wd}${an} erheblich verspätet war.`,`am ${wd} musste ich${an} lange auf ${A.den} ${F} der Linie ${l}${wohin} warten, ${A.der} viel später als planmäßig kam.`,`leider muss ich Ihnen eine Verspätung melden: ${A.Der} ${F} der Linie ${l}${wohin} kam am ${wd}${an} nicht zur Fahrplanzeit.`],
       folge:["Durch die Verspätung habe ich unnötig Zeit verloren und konnte mich nicht auf den Fahrplan verlassen.","Wer auf Anschlüsse oder Termine angewiesen ist, kann mit solchen Verspätungen nicht planen.",curVeh().bus?"Gerade bei Wind und Wetter ist langes Warten an der Haltestelle eine echte Zumutung.":"Durch die Verspätung war mein Anschluss gefährdet, und verlässliche Informationen am Bahnsteig gab es nicht."],
       bitteS:["Ich bitte Sie, die Ursache zu prüfen und mir kurz mitzuteilen, wie Sie die Pünktlichkeit auf dieser Linie verbessern wollen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte prüfen Sie, woran es lag, und geben Sie mir eine kurze Rückmeldung."],
       bitteD:["Ich erwarte, dass Sie die Ursache klären und für einen verlässlichen Betrieb auf dieser Linie sorgen. Bitte teilen Sie mir mit, was Sie konkret unternehmen.","Ich bitte Sie nachdrücklich, die Pünktlichkeit auf dieser Linie zu verbessern, und möchte über Ihre Maßnahmen informiert werden.","Bitte sorgen Sie dafür, dass sich solche Verspätungen nicht wiederholen, und informieren Sie mich über das Ergebnis Ihrer Prüfung."]
     },
     ausfall:{
       subject:[`Beschwerde: Ausfall einer Fahrt ${GEN} am ${d}`,`${LN}: ${F}${um} ist ausgefallen (${d})`,`Ausgefallene Fahrt ${GEN} am ${d}${stop?` (${stop})`:""}`,prev.length?`Erneut Fahrtausfall auf ${GEN} (${d})`:`${F} der Linie ${l} kam nicht (${d})`],
-      intro:[`hiermit möchte ich mich darüber beschweren, dass die Fahrt der Linie ${l}${wohin}${um} am ${wd}${an} ausgefallen ist.`,`ich wende mich an Sie, weil der ${F} der Linie ${l}${wohin}${um} am ${wd}${an} einfach nicht gekommen ist.`,`am ${wd} habe ich${an} vergeblich auf den ${F} der Linie ${l}${wohin}${um} gewartet. Die Fahrt ist ausgefallen.`,`leider muss ich Ihnen einen Fahrtausfall melden: Der ${F} der Linie ${l}${wohin}${um} ist am ${wd}${an} nicht gefahren.`],
-      folge:[`Ohne den ${F} musste ich lange auf die nächste Fahrt warten und bin entsprechend spät angekommen.`,`Ein Ausfall ohne rechtzeitige Information lässt Fahrgäste ratlos ${V.plat} stehen.`,"Wer sich auf den Fahrplan verlässt, hat bei einem Ausfall keine Chance, rechtzeitig umzuplanen."],
+      intro:[`hiermit möchte ich mich darüber beschweren, dass die Fahrt der Linie ${l}${wohin}${um} am ${wd}${an} ausgefallen ist.`,`ich wende mich an Sie, weil ${A.der} ${F} der Linie ${l}${wohin}${um} am ${wd}${an} einfach nicht gekommen ist.`,`am ${wd} habe ich${an} vergeblich auf ${A.den} ${F} der Linie ${l}${wohin}${um} gewartet. Die Fahrt ist ausgefallen.`,`leider muss ich Ihnen einen Fahrtausfall melden: ${A.Der} ${F} der Linie ${l}${wohin}${um} ist am ${wd}${an} nicht gefahren.`],
+      folge:[`Ohne ${A.den} ${F} musste ich lange auf die nächste Fahrt warten und bin entsprechend spät angekommen.`,`Ein Ausfall ohne rechtzeitige Information lässt Fahrgäste ratlos ${V.plat} stehen.`,"Wer sich auf den Fahrplan verlässt, hat bei einem Ausfall keine Chance, rechtzeitig umzuplanen."],
       bitteS:["Ich bitte Sie, mir mitzuteilen, warum die Fahrt ausgefallen ist und wie Sie Ausfälle künftig vermeiden oder früher ankündigen wollen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung zum Grund des Ausfalls würde ich mich freuen.","Bitte prüfen Sie den Ausfall und geben Sie mir eine kurze Rückmeldung."],
       bitteD:["Ich erwarte eine Erklärung, warum die Fahrt ausgefallen ist, und Auskunft darüber, wie Sie solche Ausfälle künftig verhindern.","Ich bitte Sie nachdrücklich, für einen verlässlichen Betrieb zu sorgen, und möchte über die Gründe des Ausfalls informiert werden.","Bitte stellen Sie sicher, dass Fahrten nicht einfach ausfallen, und teilen Sie mir mit, was Sie unternehmen."]
     },
     fahrweise:{
-      subject:[`Beschwerde über die Fahrweise in Linie ${l} am ${d}`,`Linie ${l}: gefährliche Fahrweise am ${d}`,`Fahrweise im ${F} der Linie ${l}, ${d}`,prev.length?`Erneut Probleme mit der Fahrweise auf Linie ${l} (${d})`:`Rücksichtslose Fahrweise im ${F} der Linie ${l} (${d})`],
-      intro:[`hiermit möchte ich mich über die Fahrweise im ${F} der Linie ${l}${wohin} am ${wd}${nahe} beschweren.`,`ich wende mich an Sie, weil ich am ${wd} als Fahrgast im ${F} der Linie ${l}${wohin}${nahe} eine gefährliche Fahrweise erlebt habe.`,`am ${wd} bin ich mit dem ${F} der Linie ${l}${wohin} gefahren. Die Fahrweise${nahe} war aus meiner Sicht verantwortungslos.`,`leider muss ich Ihnen eine rücksichtslose Fahrweise melden, die ich am ${wd} im ${F} der Linie ${l}${wohin}${nahe} erlebt habe.`],
+      subject:[`Beschwerde über die Fahrweise in Linie ${l} am ${d}`,`Linie ${l}: gefährliche Fahrweise am ${d}`,`Fahrweise ${A.im} ${F} der Linie ${l}, ${d}`,prev.length?`Erneut Probleme mit der Fahrweise auf Linie ${l} (${d})`:`Rücksichtslose Fahrweise ${A.im} ${F} der Linie ${l} (${d})`],
+      intro:[`hiermit möchte ich mich über die Fahrweise ${A.im} ${F} der Linie ${l}${wohin} am ${wd}${nahe} beschweren.`,`ich wende mich an Sie, weil ich am ${wd} als Fahrgast ${A.im} ${F} der Linie ${l}${wohin}${nahe} eine gefährliche Fahrweise erlebt habe.`,`am ${wd} bin ich mit ${A.dem} ${F} der Linie ${l}${wohin} gefahren. Die Fahrweise${nahe} war aus meiner Sicht verantwortungslos.`,`leider muss ich Ihnen eine rücksichtslose Fahrweise melden, die ich am ${wd} ${A.im} ${F} der Linie ${l}${wohin}${nahe} erlebt habe.`],
       folge:["Gerade ältere Menschen, Kinder und stehende Fahrgäste können bei so einer Fahrweise leicht stürzen und sich verletzen.","So eine Fahrweise gefährdet die Fahrgäste und hat mit sicherem Fahren nichts zu tun.","Als Fahrgast muss ich mich darauf verlassen können, sicher befördert zu werden. Das war hier nicht der Fall."],
       bitteS:["Ich bitte Sie, den Vorfall mit dem Fahrpersonal zu besprechen und mir kurz mitzuteilen, wie Sie damit umgehen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte prüfen Sie den Vorfall und weisen Sie das Fahrpersonal auf eine sichere Fahrweise hin."],
       bitteD:["Ich erwarte, dass Sie den Vorfall mit dem Fahrpersonal aufarbeiten und für eine sichere Fahrweise sorgen. Bitte teilen Sie mir mit, welche Maßnahmen Sie ergreifen.","Ich bitte Sie nachdrücklich, das Fahrpersonal auf eine sichere Fahrweise zu verpflichten, und möchte über Ihre Maßnahmen informiert werden.","Die Sicherheit der Fahrgäste muss Vorrang haben. Bitte sorgen Sie dafür, dass sich so etwas nicht wiederholt, und geben Sie mir Rückmeldung."]
@@ -1124,8 +1153,8 @@ function build(){
   if(wagen)out.push(`- Wagennummer: ${wagen}`);
   if(need&&dep&&dep.line.toUpperCase()===l&&hm(dep.sched)===soll){
     const df=dep.rt?Math.round((dep.rt-dep.sched)/60000):0;
-    if(T==="frueh"&&dep.rt&&df<0)out.push(`- Laut den öffentlichen Echtzeitdaten ist der ${F} um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} vor Fahrplan.`);
-    if(T==="spaet"&&dep.rt&&df>0)out.push(`- Laut den öffentlichen Echtzeitdaten kam der ${F} um ${hm(dep.rt)} Uhr, ${mins(df)} nach Fahrplan.`);
+    if(T==="frueh"&&dep.rt&&df<0)out.push(`- Laut den öffentlichen Echtzeitdaten ist ${A.der} ${F} um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} vor Fahrplan.`);
+    if(T==="spaet"&&dep.rt&&df>0)out.push(`- Laut den öffentlichen Echtzeitdaten kam ${A.der} ${F} um ${hm(dep.rt)} Uhr, ${mins(df)} nach Fahrplan.`);
     if(T==="ausfall"&&dep.cancelled)out.push(`- In den öffentlichen Echtzeitdaten ist diese Fahrt als ausgefallen gemeldet.`);
   }
   if(photos.length)out.push(`- ${recipient().mail?"Im Anhang":"Lade ich mit hoch"}: ${photos.length===1?"ein Foto":photos.length+" Fotos"}`);
@@ -1134,7 +1163,7 @@ function build(){
   if(prev.length){out.push("",wiederholt);prev.forEach(h=>out.push(incLine(h)))}
   out.push("",folge+" "+bitte);
   out.push("",schluss,name||"[Dein Name]");
-  return{subject,body:out.join("\n")};
+  return{subject:(S.test.on?"[Test] ":"")+subject,body:out.join("\n")};
 }
 function buildSummary(key){
   const items=incidents.filter(h=>gkey(h)===key).sort((a,b)=>a.ts-b.ts);
@@ -1150,6 +1179,7 @@ function buildSummary(key){
     :"Da es sich nicht um Einzelfälle handelt, bitte ich Sie, die Ursachen zu prüfen und mir mitzuteilen, wie Sie Abhilfe schaffen wollen.");
   out.push("","Mit freundlichen Grüßen",S.name.trim()||"[Dein Name]");
   const lastTo=[...items].reverse().find(h=>h.to);
+  if(S.test.on)return{subject:"[Test] "+subject,body:out.join("\n"),to:S.test.mail.trim()};
   return{subject,body:out.join("\n"),to:(lastTo&&lastTo.to)||toOf(target(defOp(),FIRST))};
 }
 const mailto=(to,subject,body)=>`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -1162,10 +1192,12 @@ function missing(){
   if(!need&&!bereich())m.push("was dort hält");
   if(T==="ausfall"&&!$("soll").value)m.push("die ausgefallene Abfahrt");
   if(!S.name.trim())m.push("dein Name");
-  if(!rc.mail&&!rc.form)m.push("ein Empfänger (Einstellungen)");
+  if(!rc.mail&&!rc.form)m.push(S.test.on?"deine Adresse für den Testmodus (Einstellungen)":"ein Empfänger (Einstellungen)");
   return m;
 }
 function render(){
+  const tb=$("testBanner");tb.hidden=!S.test.on;
+  if(S.test.on)tb.textContent=okMail(S.test.mail.trim())?`Testmodus ist an: Beschwerden gehen an ${S.test.mail.trim()}.`:"Testmodus ist an, aber deine Adresse fehlt noch (Einstellungen).";
   $("wagenHint").textContent=V.wagenHint;$("wagen").placeholder=V.wagenEx;
   const T=typ(),t=TYPES[T],need=needsLine(),l=line(),stop=$("stop").value.trim(),ist=$("ist").value;
   const soll=need?$("soll").value:"",ri=need?noRi($("richtung").value):"",g=need?null:groupByKey(bereich());
@@ -1201,8 +1233,8 @@ function render(){
   const tn=$("timeNote"),off=hasTrip&&soll&&ist&&t.showIst&&(T==="frueh"||T==="spaet")&&!effIst();
   tn.hidden=!off;
   if(off)tn.textContent=T==="frueh"
-    ?`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht vor der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann der ${V.fz} wirklich abgefahren ist. Sonst nennt die Mail nur die Fahrplanzeit.`
-    :`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht nach der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann der ${V.fz} wirklich gekommen ist. Sonst nennt die Mail nur die Fahrplanzeit.`;
+    ?`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht vor der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann ${V.art.der} ${V.fz} wirklich abgefahren ist. Sonst nennt die Mail nur die Fahrplanzeit.`
+    :`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht nach der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann ${V.art.der} ${V.fz} wirklich gekommen ist. Sonst nennt die Mail nur die Fahrplanzeit.`;
   $("nameInlineWrap").hidden=!askName;
 
   // Die Beschwerde
@@ -1456,6 +1488,9 @@ function renderOpList(){
 }
 function initSettings(){
   renderOpList();
+  $("testOn").checked=!!S.test.on;$("testMail").value=S.test.mail||"";$("testWrap").hidden=!S.test.on;
+  $("testOn").onchange=e=>{S.test.on=e.target.checked;store.set(K+"test",S.test);$("testWrap").hidden=!S.test.on;render();toast(S.test.on?"Testmodus an.":"Testmodus aus.")};
+  $("testMail").addEventListener("input",e=>{S.test.mail=e.target.value;store.set(K+"test",S.test);render()});
   $("opMail").addEventListener("change",e=>{
     const v=e.target.value.trim(),ag=e.target.dataset.ag;
     if(!ag||!v)return;
