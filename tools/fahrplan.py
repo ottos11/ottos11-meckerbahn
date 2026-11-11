@@ -60,7 +60,7 @@ def plain_name(n):
 
 
 def mode_of(route_type, short):
-    """GTFS-Verkehrsart wie bei Transitous: BUS, TRAM, SUBWAY, SUBURBAN. Sonst None."""
+    """GTFS-Verkehrsart als BUS, TRAM, SUBWAY (U-Bahn) oder SUBURBAN (S-Bahn). Sonst None."""
     try:
         t = int(route_type)
     except ValueError:
