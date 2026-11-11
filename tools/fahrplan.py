@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fahrplandateien für Meckerlinie aus einem GTFS-Fahrplan (DELFI, Deutschland gesamt).
+"""Fahrplandateien für Fahrgastecho aus einem GTFS-Fahrplan (DELFI, Deutschland gesamt).
 
 Aufruf:  python3 tools/fahrplan.py <gtfs.zip> <ausgabeordner> [stadt,stadt,...]
 

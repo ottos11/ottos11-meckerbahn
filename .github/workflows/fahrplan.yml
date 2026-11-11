@@ -28,7 +28,7 @@ jobs:
 
       - name: Sollfahrplan Deutschland laden
         run: |
-          UA="Meckerlinie/1.0 (+https://github.com/${{ github.repository }})"
+          UA="Fahrgastecho/1.0 (+https://github.com/${{ github.repository }})"
           DELFI='https://www.opendata-oepnv.de/ht/de/datensaetze/sharing?tx_vrrkit_view%5Bsharing%5D=eyJkYXRhc2V0IjoiZGV1dHNjaGxhbmR3ZWl0ZS1zb2xsZmFocnBsYW5kYXRlbi1ndGZzIn0'
           ok=0
           for U in "$DELFI" "https://download.gtfs.de/germany/nv_free/latest.zip"; do
@@ -53,7 +53,7 @@ jobs:
         run: |
           cd out
           cat > README.md <<EOF
-          # Fahrplandateien für Meckerlinie
+          # Fahrplandateien für Fahrgastecho
 
           Automatisch erzeugt vom Workflow "Fahrplan aufbereiten". Nicht von Hand ändern.
 

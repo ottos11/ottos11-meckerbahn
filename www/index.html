@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>Meckerlinie</title>
+<title>Fahrgastecho</title>
 <script src="cities.js"></script>
 <style>
-/* Meckerlinie: Beschwerden zu Bus und Bahn in ganz Deutschland.
+/* Fahrgastecho: Beschwerden zu Bus und Bahn in ganz Deutschland.
    Verkehrsbetriebe haben je Stadt eigene Farben, deshalb bleibt die App
    neutral: Schwarz auf hellem Grau, dazu das Gelb des Haltestellenschilds,
    das bundesweit gleich ist. Gelb markiert, was als Nächstes zu tun ist
@@ -238,7 +238,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
 <div class="app">
   <header class="top">
     <svg class="mark" aria-hidden="true"><use href="#i-h"/></svg>
-    <h1><span id="appName">Meckerlinie</span> <span class="city" id="cityName"></span></h1>
+    <h1><span id="appName">Fahrgastecho</span> <span class="city" id="cityName"></span></h1>
   </header>
 
   <!-- ===================== Melden ===================== -->
@@ -506,7 +506,7 @@ const natSort=(x,y)=>x.localeCompare(y,"de",{numeric:true});
 const noRi=s=>String(s||"").replace(/^Richtung\s+/i,"").trim();
 
 // ---------- Eine App für Bus und Bahn ----------
-const K="mb.";   // Speicherpräfix: Verlauf und Einstellungen der Meckerbahn bleiben erhalten
+const K="mb.";   // Speicherpräfix: Verlauf und Einstellungen früherer Versionen (Meckerbahn, Meckerlinie) bleiben erhalten
 const CITIES=window.CITIES||[];
 const lnBahn=l=>/^[A-Za-zÄÖÜ]/.test(l)?l:"Linie "+l;
 // Welche Verkehrsart eine Linie hat, steht im Fahrplan. Ohne Fahrplan wird geraten.
@@ -532,7 +532,7 @@ const veh=m=>{
 };
 const curVeh=()=>veh(modeOf(line()));
 const V={
-  app:"Meckerlinie",which:"Welche Linie?",stopWord:"Haltestelle",depWord:"Abfahrten",
+  app:"Fahrgastecho",which:"Welche Linie?",stopWord:"Haltestelle",depWord:"Abfahrten",
   want:["BUS","SUBWAY","SUBURBAN","TRAM","METRO"],modeParam:"BUS,SUBWAY,SUBURBAN,TRAM",radius:250,lineEx:"5 oder U1",
   get fz(){return curVeh().fz},get fzPl(){return curVeh().fzPl},get plat(){return curVeh().plat},
   get ermitteln(){return curVeh().ermitteln},get art(){return curVeh().art},get wagenHint(){return curVeh().wagenHint},get wagenEx(){return curVeh().wagenEx},

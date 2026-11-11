@@ -1,9 +1,9 @@
 {
   "appId": "de.ottos11.meckerbahn",
-  "appName": "Meckerlinie",
+  "appName": "Fahrgastecho",
   "webDir": "www",
   "android": {
     "adjustMarginsForEdgeToEdge": "force"
   },
-  "appendUserAgent": "Meckerlinie/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
+  "appendUserAgent": "Fahrgastecho/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
 }

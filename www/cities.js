@@ -1,4 +1,4 @@
-// Städte für Meckerlinie (Bus) und Meckerbahn (U-, S-, Stadt- und Straßenbahn).
+// Städte für Fahrgastecho: Betriebe und Beschwerdewege für Bus, U-, S-, Stadt- und Straßenbahn.
 //
 // Diese Datei ist in beiden Apps gleich. Neue Stadt: Eintrag ergänzen.
 //
@@ -12,7 +12,7 @@
 //                 (BUS, SUBWAY = U-Bahn, SUBURBAN = S-Bahn, TRAM = Straßen- und Stadtbahn)
 //   fallback      Betrieb für unbekannte Unternehmen (sonst fragt die App nach der Adresse)
 //   def           Standard-Empfänger je App
-//   groups        Auswahl "Welche Bahn?" für Meldungen an der Haltestelle (nur Meckerbahn)
+//   groups        Auswahl "Welche Bahn?" für Meldungen an der Haltestelle 
 //   ex            Beispiele für die Eingabefelder
 //
 // Die Namen in "re" sind so geschrieben, wie der DELFI-Fahrplan die Betriebe führt. Welche Betriebe

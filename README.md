@@ -1,4 +1,4 @@
-# Meckerlinie
+# Fahrgastecho
 
 Android-App für Beschwerden zu Bus und Bahn: Die App schreibt eine fertige Beschwerde und schickt sie an den zuständigen Verkehrsbetrieb.
 
@@ -58,13 +58,13 @@ Verkehrsbetriebe haben je Stadt eigene Farben, deshalb ist die App neutral: Schw
 Bei jedem Push auf `main` baut GitHub Actions automatisch eine neue APK.
 
 1. Im Repo rechts auf **Releases** gehen.
-2. `meckerlinie.apk` auf dem Handy herunterladen und installieren, oder das Repo in Obtainium eintragen.
+2. `fahrgastecho.apk` auf dem Handy herunterladen und installieren, oder das Repo in Obtainium eintragen.
 
 Die Test-APK wird mit demselben Schlüssel signiert (`signing/debug.keystore`, Standard-Passwort `android`), damit sich neue Versionen als Update installieren lassen. Sie hat die Paket-ID `de.ottos11.meckerbahn` und ist nur zum Testen gedacht.
 
 ## Google Play
 
-Derselbe Build erzeugt zusätzlich ein App-Bundle für Google Play (`meckerlinie-play.aab`, unter Actions beim jeweiligen Lauf als Build-Ergebnis). Es hat die Paket-ID `de.ottos11.meckerlinie` und ist mit dem Upload-Schlüssel signiert.
+Derselbe Build erzeugt zusätzlich ein App-Bundle für Google Play (`fahrgastecho-play.aab`, unter Actions beim jeweiligen Lauf als Build-Ergebnis). Es hat die Paket-ID `de.ottos11.fahrgastecho` und ist mit dem Upload-Schlüssel signiert.
 
 - Der Upload-Schlüssel liegt nur in den Repo-Secrets: `UPLOAD_KEYSTORE_BASE64` (die PKCS12-Datei als Base64, Alias `upload`) und `UPLOAD_KEY_PASSWORD`. Fehlen sie, wird nur die Test-APK gebaut.
 - Den eigentlichen App-Signaturschlüssel verwaltet Google (Play App Signing). Geht der Upload-Schlüssel verloren, lässt er sich in der Play Console zurücksetzen.
@@ -80,7 +80,7 @@ Derselbe Build erzeugt zusätzlich ein App-Bundle für Google Play (`meckerlinie
 - `.github/workflows/build-apk.yml`: baut die APK
 - `.github/workflows/fahrplan.yml` und `tools/fahrplan.py`: erzeugen die Fahrplandateien
 
-Die Paket-ID `de.ottos11.meckerbahn` stammt aus der Zeit, als Bus und Bahn noch zwei Apps waren. Sie bleibt, damit sich die App als Update über die bisherige Meckerbahn installieren lässt.
+Die Paket-ID `de.ottos11.meckerbahn` der Test-APK stammt aus der Zeit, als die App noch Meckerbahn hieß. Sie bleibt, damit sich die Test-APK weiter als Update installieren lässt.
 
 Fotos hängt die App über das Plugin `capacitor-email-composer` an die Mail. Das Android-Projekt (`android/`) wird beim Build jedes Mal neu erzeugt und liegt deshalb nicht im Repo.
 

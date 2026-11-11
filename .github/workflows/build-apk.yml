@@ -63,14 +63,14 @@ jobs:
       - name: APK umbenennen und Signatur prüfen
         run: |
           APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
-          cp "$APK" meckerlinie.apk
-          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify --print-certs meckerlinie.apk | head -3
+          cp "$APK" fahrgastecho.apk
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify --print-certs fahrgastecho.apk | head -3
 
       - name: APK als Build-Ergebnis speichern
         uses: actions/upload-artifact@v4
         with:
-          name: meckerlinie.apk
-          path: meckerlinie.apk
+          name: fahrgastecho.apk
+          path: fahrgastecho.apk
 
       - name: App-Bundle für Google Play bauen
         working-directory: android
@@ -84,7 +84,7 @@ jobs:
             echo "::notice::Upload-Schlüssel fehlt noch, das App-Bundle für Google Play wird nicht gebaut."
             exit 0
           fi
-          sed -i -E 's/applicationId "[^"]+"/applicationId "de.ottos11.meckerlinie"/' app/build.gradle
+          sed -i -E 's/applicationId "[^"]+"/applicationId "de.ottos11.fahrgastecho"/' app/build.gradle
           grep applicationId app/build.gradle
           printf '%s' "$UPLOAD_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/upload.p12"
           ./gradlew bundleRelease --no-daemon \
@@ -93,23 +93,23 @@ jobs:
             -Pandroid.injected.signing.key.alias=upload \
             -Pandroid.injected.signing.key.password="$UPLOAD_KEY_PASSWORD"
           rm -f "$RUNNER_TEMP/upload.p12"
-          cp app/build/outputs/bundle/release/*.aab ../meckerlinie-play.aab
-          keytool -printcert -jarfile ../meckerlinie-play.aab | grep -E "Owner|Eigentümer|SHA256" | head -3
+          cp app/build/outputs/bundle/release/*.aab ../fahrgastecho-play.aab
+          keytool -printcert -jarfile ../fahrgastecho-play.aab | grep -E "Owner|Eigentümer|SHA256" | head -3
 
       - name: App-Bundle als Build-Ergebnis speichern
-        if: hashFiles('meckerlinie-play.aab') != ''
+        if: hashFiles('fahrgastecho-play.aab') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: meckerlinie-play-1.0.${{ github.run_number }}
-          path: meckerlinie-play.aab
+          name: fahrgastecho-play-1.0.${{ github.run_number }}
+          path: fahrgastecho-play.aab
 
       - name: Release mit APK veröffentlichen
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Meckerlinie 1.0.${{ github.run_number }}
+          name: Fahrgastecho 1.0.${{ github.run_number }}
           body: |
             Automatisch gebaute Android-App.
             Auf dem Handy herunterladen und installieren (Installation aus unbekannten Quellen einmal erlauben).
-          files: meckerlinie.apk
+          files: fahrgastecho.apk
           make_latest: true
