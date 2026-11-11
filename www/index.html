@@ -119,6 +119,7 @@ select.ctl:disabled{color:var(--muted);opacity:1;background:transparent}
 @media (prefers-reduced-motion:reduce){.status[data-state="load"] .dot{animation:none}}
 .note{font-size:.92rem;padding:10px 12px;border-radius:8px;background:var(--surface);border:1.5px solid var(--line)}
 .note.good{background:var(--accent-soft);border-color:transparent}
+.note .tip{display:block;margin-top:6px;color:var(--muted,inherit)}
 .note.warn{background:var(--warn-soft);border-color:transparent}
 .search{display:flex;gap:8px}
 .search .ctl{flex:1}
@@ -351,7 +352,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
         </div>
         <input class="vh" type="file" id="camInput" accept="image/*" capture="environment" tabindex="-1">
         <input class="vh" type="file" id="galInput" accept="image/*" multiple tabindex="-1">
-        <span class="hint">Fotografiere nur den Dreck, keine Menschen. Achte darauf, dass auf dem Bild niemand zu erkennen ist.</span>
+        <span class="hint">Fotografiere den Dreck, nicht die Leute: Auf dem Bild sollte niemand zu erkennen sein.</span>
       </div>
       <div class="field" id="nameInlineWrap" hidden>
         <label for="nameInline">Dein Name</label>
@@ -570,12 +571,16 @@ const DETAIL={
 };
 const typeOf=h=>ALLTYPES[h.typ]||TYPES[FIRST];
 // Hinweis zum Augenmaß, je nach Art des Vorfalls
-const MASS="Nicht jeder Betrunkene belästigt, nicht jedes Ruckeln ist Raserei, und zwei Minuten sind noch keine Verspätung. Berechtigte Beschwerden werden ernst genommen, Dauerfeuer nicht.";
+const MASS="Nicht jeder Betrunkene belästigt dich, nicht jedes Ruckeln ist ein Formel-1-Start, und zwei Minuten Verspätung sind noch kein Weltuntergang. Wer mit Maß meckert, wird gehört.";
 const TYPEHINT={
-  spaet:"Ein paar Minuten Verspätung sind im Stadtverkehr normal. Melde Verspätungen, wenn sie deutlich sind, sich häufen oder du deshalb deinen Anschluss verpasst hast.",
-  fahrweise:"Ein ruckiges Anfahren oder eine scharfe Bremsung, um einen Unfall zu vermeiden, ist noch keine gefährliche Fahrweise. Melde es, wenn Fahrgäste gefährdet waren oder es dir immer wieder auffällt.",
-  belaestigt:"Belästigung heißt: Jemand spricht dich gegen deinen Willen an, bedrängt, beleidigt, bedroht oder berührt dich. Wer nur betrunken, laut oder ungepflegt ist, belästigt dich noch nicht.",
-  betteln:"Melde Betteln vor allem, wenn Fahrgäste bedrängt werden oder es auf einer Linie ständig vorkommt."
+  frueh:"Zu früh ist wirklich ärgerlich, da hilft auch kein Sprint. Schon eine Minute zählt, wenn du deshalb nur noch die Rücklichter gesehen hast.",
+  spaet:"Zwei, drei Minuten? Willkommen im Stadtverkehr. Melde es, wenn es deutlich mehr war, ständig passiert oder dein Anschluss gerade ohne dich losgefahren ist.",
+  ausfall:"Ausgefallen heißt: Da kam gar nichts. War es nur spät, passt „Zu spät gekommen“ besser.",
+  fahrweise:"Eine kräftige Bremsung, weil ein Radfahrer aus dem Nichts kam, ist noch kein Rennfahrer-Debüt. Melde es, wenn Fahrgäste ernsthaft gefährdet waren oder es dir immer wieder auffällt.",
+  belaestigt:"Laut, angeheitert oder etwas schräg ist noch keine Belästigung, Bus und Bahn sind eben Gesellschaft. Wenn dich aber jemand gegen deinen Willen anspricht, bedrängt, beleidigt, bedroht oder anfasst: Das gehört gemeldet.",
+  betteln:"Einmal gefragt, einmal Nein gesagt, fertig. Das muss nicht in die Akte. Melde es, wenn Fahrgäste bedrängt werden oder es auf deiner Linie zum Dauerprogramm gehört.",
+  gestank:"Ein Fischbrötchen in Reihe drei ist noch kein Geruchsnotstand. Melde es, wenn es wirklich übel riecht und die Fahrt kaum zumutbar ist.",
+  dreck:"Ein einzelnes Bonbonpapier macht noch keine Müllhalde. Melde es, wenn es richtig eklig ist. Und fotografier den Dreck, nicht die Leute."
 };
 // Fotos nur vom Zustand, nie von Menschen
 const PHOTO_TYPES=["dreck","gestank"];
@@ -1286,7 +1291,7 @@ function render(){
     ?`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht vor der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann ${V.art.der} ${V.fz} wirklich abgefahren ist. Sonst nennt die Mail nur die Fahrplanzeit.`
     :`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht nach der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann ${V.art.der} ${V.fz} wirklich gekommen ist. Sonst nennt die Mail nur die Fahrplanzeit.`;
   const sn=$("smallNote");sn.hidden=!small;
-  if(small)sn.textContent=`${small===1?"Eine Minute":small+" Minuten"} Verspätung sind im Stadtverkehr meist noch normal. Schick die Beschwerde nur, wenn es einen besonderen Grund gibt, etwa einen verpassten Anschluss, oder wenn es auf dieser Fahrt ständig vorkommt.`;
+  if(small)sn.textContent=`${small===1?"Eine Minute":small+" Minuten"} zu spät? Im Stadtverkehr ist das fast schon pünktlich. Schick die Beschwerde trotzdem ab, wenn dein Anschluss weg ist oder es hier zur Gewohnheit wird.`;
   $("nameInlineWrap").hidden=!askName;
 
   // Die Beschwerde
@@ -1429,9 +1434,10 @@ function layout(){
   $("condWrap").hidden=!cond;
   $("ortField").hidden=!!t.ortFix;
   $("safeNote").hidden=T!=="belaestigt";
-  const th=$("typeHint");th.textContent="";th.append(el("strong",{text:"Meckern mit Maß. "}),TYPEHINT[T]||MASS);
+  const th=$("typeHint");th.textContent="";th.append(el("strong",{text:"Meckern mit Maß. "}),MASS);
+  if(TYPEHINT[T])th.append(el("span",{class:"tip",text:TYPEHINT[T]}));
   const pOk=PHOTO_TYPES.includes(T);$("photoField").hidden=!pOk;
-  if(!pOk&&photos.length){photos=[];renderPhotos();toast("Fotos gibt es nur bei Dreck und Gestank. Die Fotos wurden entfernt.")}
+  if(!pOk&&photos.length){photos=[];renderPhotos();toast("Fotos gibt’s nur bei Dreck und Gestank. Die Bilder sind wieder raus.")}
   $("h3a").textContent=need?V.which:"Wo genau?";
   $("tripBox").hidden=!need;$("haltWrap").hidden=need;$("manualTrip").hidden=!need;
   $("wagenWrap").hidden=!(cond&&need);
