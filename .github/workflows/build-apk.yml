@@ -28,21 +28,11 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
-      - name: Fahrplan-API testen (Transitous)
+      - name: Fahrplandateien prüfen
         continue-on-error: true
         run: |
-          UA="Meckerlinie/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
-          echo "== Haltestellen nahe Hamburg Jungfernstieg"
-          curl -sS -A "$UA" "https://api.transitous.org/api/v1/reverse-geocode?place=53.5529,9.9937&type=STOP&numResults=20" > stops.json
-          jq -c '.[] | {type,name,id,modes}' stops.json | head -12
-          ID=$(jq -r '[.[] | select((.modes // []) | any(. == "SUBWAY" or . == "SUBURBAN"))][0].id' stops.json)
-          FROM=$(date -u -d '-60 min' +%Y-%m-%dT%H:%M:%SZ)
-          echo "== U- und S-Bahn-Abfahrten an $ID"
-          curl -sS -A "$UA" -G "https://api.transitous.org/api/v6/stoptimes" \
-            --data-urlencode "stopId=$ID" --data-urlencode "time=$FROM" \
-            -d n=200 -d window=6000 --data-urlencode "mode=SUBWAY,SUBURBAN" -d radius=250 -d withAlerts=false > st.json
-          jq -c '[.stopTimes[] | {l:.routeShortName,to:(.headsign // .tripTo.name),ag:.agencyName,mode}] | unique | .[:30][]' st.json || head -c 800 st.json
-          jq -c '.stopTimes[:4][] | {routeShortName,headsign,realTime,cancelled,sched:.place.scheduledDeparture,dep:.place.departure}' st.json || true
+          curl -sSf "https://raw.githubusercontent.com/${{ github.repository }}/fahrplan/manifest.json" \
+            | jq -c '{built, from, days, staedte: (.cities | to_entries | map({(.key): .value.stops}) | add)}'
 
       - name: Abhängigkeiten installieren
         run: npm install

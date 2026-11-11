@@ -15,8 +15,9 @@
 //   groups        Auswahl "Welche Bahn?" für Meldungen an der Haltestelle (nur Meckerbahn)
 //   ex            Beispiele für die Eingabefelder
 //
-// Die Namen in "re" sind so geschrieben, wie der Fahrplandienst Transitous die Betriebe führt
-// (geprüft mit dem Workflow "Betreiber auflisten").
+// Die Namen in "re" sind so geschrieben, wie der DELFI-Fahrplan die Betriebe führt. Welche Betriebe
+// in einer Stadt fahren, steht nach jedem Lauf von "Fahrplan aufbereiten" im Zweig "fahrplan"
+// in manifest.json (cities.<stadt>.agencies: Name, Verkehrsart, Zahl der Abfahrten).
 //
 // Quellen der Adressen: jeweils die offiziellen Kontakt- oder Datenschutzseiten der Betriebe,
 // Stand November 2026. Bitte vor Änderungen dort nachsehen.

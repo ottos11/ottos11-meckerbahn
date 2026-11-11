@@ -385,7 +385,7 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
       </div>
     </section>
 
-    <footer class="credits">Sollfahrplan: <a href="https://www.delfi.de/" target="_blank" rel="noopener">DELFI e.V.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, aufbereitet. Echtzeit und weitere Städte: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.</footer>
+    <footer class="credits">Fahrplandaten: <a href="https://www.delfi.de/" target="_blank" rel="noopener">DELFI e.V.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, für die App gekürzt und umgewandelt.</footer>
   </main>
 
   <!-- ===================== Verlauf ===================== -->
@@ -453,8 +453,8 @@ dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
     </section>
     <section class="group about">
       <h3 style="color:var(--ink)">Über die App</h3>
-      <p>Dein Standort geht nur an den Fahrplandienst Transitous, um Haltestellen und Abfahrten zu finden. Name, Verlauf und Einstellungen bleiben auf diesem Handy. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang deiner Mail.</p>
-      <p>Sollfahrplan: <a href="https://www.delfi.de/" target="_blank" rel="noopener">DELFI e.V.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, aufbereitet. Echtzeit und weitere Städte: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Schrift: Barlow (SIL Open Font License).</p>
+      <p>Dein Standort bleibt auf diesem Handy: Die App lädt den Fahrplan deiner Stadt und sucht die Haltestellen auf dem Gerät. Name, Verlauf und Einstellungen bleiben auf diesem Handy. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang deiner Mail.</p>
+      <p>Fahrplandaten: <a href="https://www.delfi.de/" target="_blank" rel="noopener">DELFI e.V.</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, für die App gekürzt und umgewandelt. Schrift: Barlow (SIL Open Font License).</p>
       <p id="versionLine"></p>
     </section>
   </main>
@@ -691,13 +691,11 @@ function readWhen(){
   clearTimeout(reloadT);reloadT=setTimeout(()=>{if(curStop)onStop(true)},600);
 }
 
-// ---------- Transitous: Haltestellen, Linien, Abfahrten ----------
-const TAPI="https://api.transitous.org/api";
-async function tget(path,params){
-  const r=await fetch(TAPI+path+"?"+new URLSearchParams(params),{headers:{"Accept":"application/json"}});
-  if(!r.ok)throw new Error("HTTP "+r.status);
-  return r.json();
-}
+// ---------- Fahrplan: Sollfahrplan von DELFI, je Stadt aufbereitet ----------
+// Der Workflow "Fahrplan aufbereiten" erzeugt die Dateien jede Woche (Zweig "fahrplan").
+// Die App lädt die Haltestellenliste der Stadt und nur die Abfahrten der gewählten Haltestelle.
+// Der Standort verlässt das Handy dabei nicht: Die Suche nach Haltestellen läuft auf dem Gerät.
+const FPBASE="https://raw.githubusercontent.com/ottos11/ottos11-meckerbahn/fahrplan/";
 const distM=(e,lat,lon)=>Math.hypot((e.lat-lat)*111320,(e.lon-lon)*111320*Math.cos(lat*Math.PI/180));
 const isWanted=x=>!Array.isArray(x.modes)||x.modes.some(m=>V.want.includes(m));
 
@@ -705,52 +703,72 @@ const isWanted=x=>!Array.isArray(x.modes)||x.modes.some(m=>V.want.includes(m));
 // "U S Jungfernstieg", sie gehört zu "Jungfernstieg". Zusätze in Klammern bleiben, denn
 // "Rathausmarkt (Petrikirche)" ist eine andere Haltestelle als "Rathausmarkt".
 // Schreibweisen angleichen: "Hauptbahnhof" und "Hbf", "Bahnhof", "Bhf" und "Bf.", Kommas.
+// tools/fahrplan.py fasst Haltestellen mit derselben Regel zusammen.
 const stopKey=n=>String(n||"").toLowerCase()
   .replace(/\bhauptbahnhof\b/g,"hbf").replace(/\b(bahnhof|bhf|bf)\b\.?/g,"bf").replace(/[.,]/g," ")
   .replace(/\s+/g," ").trim().replace(/^((u|s|s\+u|u\+s|bf)\s+)+/,"").trim();
+
 const plainName=n=>!/^(u|s|s\+u|u\+s|bf\.?|bahnhof)\s/i.test(String(n||"").trim());
-// ---------- Fahrplandateien: Sollfahrplan von DELFI, je Stadt aufbereitet ----------
-// Der Workflow "Fahrplan aufbereiten" erzeugt sie jede Woche. Für Städte ohne Dateien
-// fragt die App weiter bei Transitous.
-const FPBASE="https://raw.githubusercontent.com/ottos11/ottos11-meckerbahn/fahrplan/";
+const noCity=()=>{const e=new Error("kein Fahrplan für diesen Ort");e.noCity=true;return e};
 let fpMan=null,fpManT=0;const fpIdx={},fpFiles=new Map();
 async function jget(u){const r=await fetch(u,{cache:"no-cache"});if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}
 async function fpManifest(){
   if(fpMan&&Date.now()-fpManT<3*3600e3)return fpMan;
-  try{fpMan=await jget(FPBASE+"manifest.json");fpManT=Date.now()}catch(e){if(!fpMan)fpMan={cities:{}}}
+  try{fpMan=await jget(FPBASE+"manifest.json");fpManT=Date.now();store.set(K+"fpCities",Object.keys(fpMan.cities||{}))}
+  catch(e){if(!fpMan)throw e}
   return fpMan;
 }
+// Haltestellenliste einer Stadt. null: für diese Stadt gibt es keinen Fahrplan.
 async function fpCity(c){
   if(!c)return null;
-  try{
-    const m=await fpManifest();
-    if(!m.cities||!m.cities[c.id])return null;
-    const v=String(m.built||"").replace(/\D/g,"");
-    if(fpIdx[c.id]&&fpIdx[c.id].v===v)return fpIdx[c.id];
-    const x=await jget(FPBASE+c.id+"/index.json?v="+v);
-    x.v=v;x.city=c.id;fpIdx[c.id]=x;return x;
-  }catch(e){return null}
+  const m=await fpManifest();
+  if(!m.cities||!m.cities[c.id])return null;
+  const v=String(m.built||"").replace(/\D/g,"");
+  if(fpIdx[c.id]&&fpIdx[c.id].v===v)return fpIdx[c.id];
+  const x=await jget(FPBASE+c.id+"/index.json?v="+v);
+  x.v=v;x.city=c.id;fpIdx[c.id]=x;return x;
 }
-const fpStop=(fi,s,lat,lon)=>({name:s[1],ids:[s[0]],lat:s[2],lon:s[3],modes:s[4],fp:fi.city,...(lat!==undefined?{m:Math.round(distM({lat:s[2],lon:s[3]},lat,lon))}:{})});
-function fpNearby(fi,lat,lon){
+const fpStop=(fi,s,lat,lon)=>({name:s[1],ids:[s[0]],lat:s[2],lon:s[3],modes:s[4],fp:fi.city,...(lat!=null?{m:Math.round(distM({lat:s[2],lon:s[3]},lat,lon))}:{})});
+async function nearbyStops(lat,lon){
+  const fi=await fpCity(cityAt(lat,lon));
+  if(!fi)throw noCity();
   return fi.stops.map(s=>fpStop(fi,s,lat,lon)).filter(o=>o.m<=800&&isWanted(o))
     .sort((a,b)=>a.m-b.m).slice(0,8).map(o=>({...o,label:`${o.name} (${o.m} m)`}));
 }
-function fpSearch(fi,text,near){
+async function searchStops(text){
+  const c0=curCity();const near=pos||store.get(K+"lastPos",null)||(c0?{lat:c0.center[0],lon:c0.center[1]}:null);
+  // Gesucht wird in der eingestellten oder erkannten Stadt. Nur ohne jeden Standort in allen Städten.
+  let list=[c0||(near&&cityAt(near.lat,near.lon))].filter(Boolean);
+  if(!list.length){if(near)throw noCity();const m=await fpManifest();list=CITIES.filter(c=>m.cities&&m.cities[c.id])}
   const q=stopKey(text),ql=String(text).toLowerCase().trim();
-  if(!q&&!ql)return [];
+  const wre=new RegExp("(^|[\\s,(/-])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
   const score=n=>{const k=stopKey(n),l=n.toLowerCase();
     if(k===q)return 0;if(k.startsWith(q)||l.startsWith(ql))return 1;
-    if(new RegExp("(^|[\\s,(/-])"+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(k))return 2;
-    if(k.includes(q)||l.includes(ql))return 3;return 9};
-  return fi.stops.map(s=>({s,sc:score(s[1])})).filter(x=>x.sc<9)
-    .map(x=>({...fpStop(fi,x.s,near&&near.lat,near&&near.lon),sc:x.sc}))
-    .filter(isWanted).sort((a,b)=>a.sc-b.sc||(a.m||0)-(b.m||0)||a.name.localeCompare(b.name,"de"))
-    .slice(0,10).map(o=>({...o,label:o.name}));
+    if(wre.test(k))return 2;if(k.includes(q)||l.includes(ql))return 3;return 9};
+  const hits=[];let any=false;
+  for(const c of list){
+    const fi=await fpCity(c);if(!fi)continue;any=true;
+    fi.stops.forEach(s=>{const sc=score(s[1]);if(sc<9)hits.push({...fpStop(fi,s,near&&near.lat,near&&near.lon),sc,label:s[1]+(list.length>1?", "+c.name:"")})});
+  }
+  if(!any)throw noCity();
+  return hits.filter(isWanted).sort((a,b)=>a.sc-b.sc||(a.m||0)-(b.m||0)||a.name.localeCompare(b.name,"de")).slice(0,10);
 }
-async function fpDepartures(stop){
+// Ältere Einträge unter "Zuletzt genutzt" stammen noch vom früheren Fahrplandienst: über Name und Lage zuordnen
+async function fpResolve(stop){
+  if(stop.fp)return stop;
+  if(stop.lat==null)throw noCity();
+  const fi=await fpCity(cityAt(stop.lat,stop.lon));if(!fi)throw noCity();
+  const k=stopKey(stop.name);let best=null,bd=400;
+  fi.stops.forEach(s=>{const d=distM({lat:s[2],lon:s[3]},stop.lat,stop.lon);if(d<bd&&(stopKey(s[1])===k||d<60)){bd=d;best=s}});
+  if(!best)throw noCity();
+  const o=fpStop(fi,best);Object.assign(stop,{ids:o.ids,fp:o.fp,lat:o.lat,lon:o.lon});
+  return stop;
+}
+async function stopDepartures(stop){
+  // Abfahrten rund um den Zeitpunkt des Vorfalls: 60 Minuten davor bis 40 Minuten danach
+  stop=await fpResolve(stop);
   const fi=fpIdx[stop.fp]||await fpCity(CITIES.find(c=>c.id===stop.fp));
-  if(!fi)throw new Error("keine Fahrplandateien");
+  if(!fi)throw noCity();
   const id=stop.ids[0],key=fi.city+"/"+id+"?"+fi.v;
   let f=fpFiles.get(key);
   if(!f){f=await jget(FPBASE+fi.city+"/s/"+encodeURIComponent(id)+".json?v="+fi.v);fpFiles.set(key,f)}
@@ -775,64 +793,11 @@ async function fpDepartures(stop){
   }
   return out;
 }
-
-async function nearbyStops(lat,lon){
-  const fi=await fpCity(cityAt(lat,lon));
-  if(fi)return fpNearby(fi,lat,lon);
-  const m=await tget("/v1/reverse-geocode",{place:`${lat},${lon}`,type:"STOP",numResults:20});
-  const by=new Map();
-  (m||[]).forEach(x=>{
-    if(x.type&&x.type!=="STOP")return;
-    if(!isWanted(x))return;
-    const d=Math.round(distM(x,lat,lon));if(d>800)return;
-    const k=stopKey(x.name),o=by.get(k)||{name:x.name,ids:[],m:d,lat:x.lat,lon:x.lon};
-    if(plainName(x.name))o.name=x.name;
-    o.ids.push(x.id);o.m=Math.min(o.m,d);by.set(k,o);
-  });
-  return [...by.values()].sort((x,y)=>x.m-y.m).slice(0,8).map(o=>({...o,label:`${o.name} (${o.m} m)`}));
-}
-async function searchStops(text){
-  const p={text,type:"STOP",language:"de",numResults:15};
-  const c0=curCity();const near=pos||store.get(K+"lastPos",null)||(c0?{lat:c0.center[0],lon:c0.center[1]}:null);
-  if(near)p.place=`${near.lat},${near.lon}`;
-  const fi=await fpCity((near&&cityAt(near.lat,near.lon))||c0);
-  if(fi)return fpSearch(fi,text,near);
-  const m=await tget("/v1/geocode",p);
-  const by=new Map();
-  (m||[]).forEach(x=>{
-    if(x.type&&x.type!=="STOP")return;
-    if(!isWanted(x))return;
-    const a=(x.areas||[]).find(a=>a.default);const area=a?a.name:"";
-    const k=stopKey(x.name)+"|"+area;
-    const o=by.get(k)||{name:x.name,ids:[],lat:x.lat,lon:x.lon,label:x.name+(area&&!x.name.includes(area)?", "+area:"")};
-    if(plainName(x.name)&&!plainName(o.name)){o.name=x.name;o.label=x.name+(area&&!x.name.includes(area)?", "+area:"")}
-    o.ids.push(x.id);by.set(k,o);
-  });
-  return [...by.values()].slice(0,10);
-}
-async function stopDepartures(stop){
-  // Abfahrten rund um den Zeitpunkt des Vorfalls: 60 Minuten davor bis 40 Minuten danach
-  if(stop.fp)return fpDepartures(stop);
-  const ref=when.getTime(), from=new Date(ref-60*60000);
-  const seen=new Map();
-  for(const id of stop.ids.slice(0,2)){
-    const r=await tget("/v6/stoptimes",{stopId:id,time:from.toISOString().replace(/\.\d{3}Z$/,"Z"),n:400,window:6000,mode:V.modeParam,radius:V.radius,withAlerts:"false"});
-    (r.stopTimes||[]).forEach(st=>{
-      const k=st.tripId+"|"+(st.place&&st.place.scheduledDeparture);
-      if(st.place&&st.place.scheduledDeparture&&!seen.has(k))seen.set(k,st);
-    });
-  }
-  const lo=ref-60*60000,hi=ref+40*60000;
-  // Der Umkreis erfasst auch Nachbarhaltestellen. Behalten wird nur, was zu dieser Haltestelle gehört.
-  const want=stopKey(stop.name);
-  // Zur Haltestelle gehört, was gleich heißt, dieselbe Kennung hat oder direkt daneben liegt (40 m).
-  const mine=st=>{const pl=st.place||{},id=pl.stopId||"";
-    if(stopKey(pl.name)===want||stop.ids.some(x=>id===x||id.startsWith(x+":")))return true;
-    return stop.lat!==undefined&&pl.lat!==undefined&&distM(pl,stop.lat,stop.lon)<=40};
-  let all=[...seen.values()];
-  // Nur wenn die Daten gar keine Haltestellennamen liefern, bleibt der ganze Umkreis.
-  if(all.some(st=>st.place&&st.place.name))all=all.filter(mine);
-  return all.filter(st=>{const t=new Date(st.place.scheduledDeparture).getTime();return t>=lo&&t<=hi});
+// Liegt das Datum außerhalb der Fahrplandateien (14 Tage zurück, 21 voraus)?
+function outOfRange(){
+  const fi=curStop&&curStop.fp&&fpIdx[curStop.fp];if(!fi)return false;
+  const [y,m,d]=fi.from.split("-").map(Number),i=Math.floor((new Date(when.getFullYear(),when.getMonth(),when.getDate())-new Date(y,m-1,d))/864e5);
+  return i<1||i>=fi.days;
 }
 const lineOf=st=>(st.routeShortName||st.displayName||"").replace(/^(Bus|Tram|STR)\s+/i,"").trim();
 const dirOf=st=>(st.headsign||(st.tripTo&&st.tripTo.name)||"").trim();
@@ -871,7 +836,7 @@ async function showNearby(){
   setStatus("load","Suche Haltestellen in der Nähe …");
   let list;
   try{list=await nearbyStops(pos.lat,pos.lon)}
-  catch(e){setStatus("warn","Die Fahrplandaten sind gerade nicht erreichbar. Trag Haltestelle und Linie in Schritt 3 selbst ein.");openManual();return}
+  catch(e){setStatus("warn",e.noCity?"Für diesen Ort hat die App noch keinen Fahrplan. Trag Haltestelle und Linie in Schritt 3 selbst ein.":"Der Fahrplan lässt sich gerade nicht laden. Prüf die Internetverbindung oder trag Haltestelle und Linie in Schritt 3 selbst ein.");openManual();return}
   if(!list.length){setStops([],"In der Nähe");setStatus("warn",`Im Umkreis von 800 m liegt keine ${V.stopWord}. Such die Haltestelle über ihren Namen.`);return}
   setStops(list,"In der Nähe");
   setStatus("ok",`Standort erfasst, auf ${pos.acc} m genau.`);
@@ -896,7 +861,7 @@ async function onStop(keep){
   catch(e){
     if(seq!==loadSeq)return;
     fillSelect($("lineSel"),[],"Abfahrten nicht abrufbar");
-    showNote("warn","Die Abfahrten lassen sich gerade nicht laden. Trag Linie und Fahrplanzeit unten selbst ein.");
+    showNote("warn",e.noCity?"Für diese Haltestelle hat die App keinen Fahrplan mehr. Such sie neu oder trag Linie und Fahrplanzeit unten selbst ein.":"Die Abfahrten lassen sich gerade nicht laden. Trag Linie und Fahrplanzeit unten selbst ein.");
     openManual();return;
   }
   if(seq!==loadSeq)return;
@@ -906,7 +871,7 @@ async function onStop(keep){
   autoBereich();
   if(!lines.length){
     fillSelect($("lineSel"),[],"Keine Abfahrten gefunden");
-    showNote("warn",`Für ${dDay(when)} um ${hm(when)} Uhr stehen an dieser Haltestelle keine ${V.depWord} im Fahrplan. Prüf Datum und Uhrzeit oder trag die Angaben unten selbst ein.`);
+    showNote("warn",outOfRange()?"Der Fahrplan in der App reicht 14 Tage zurück und 3 Wochen voraus. Für dieses Datum trag Linie und Fahrplanzeit unten selbst ein.":`Für ${dDay(when)} um ${hm(when)} Uhr stehen an dieser Haltestelle keine ${V.depWord} im Fahrplan. Prüf Datum und Uhrzeit oder trag die Angaben unten selbst ein.`);
     if(needsLine())openManual();
     render();return;
   }
@@ -1002,9 +967,9 @@ function onTime(){
     showNote("",`Fahrt zugeordnet: ${dep.line}, planmäßig ${hm(dep.sched)} Uhr ab ${$("stop").value.trim()||"dieser Haltestelle"}. ${V.ermitteln}`);
   }else if(T==="ausfall"){
     if(dep.cancelled)showNote("good","Laut Echtzeitdaten ist diese Fahrt als ausgefallen gemeldet."+beleg);
-    else showNote("",dep.rt?"Laut Echtzeitdaten ist diese Fahrt nicht als ausgefallen gemeldet. Deine Beobachtung zählt trotzdem.":"Für diese Fahrt gibt es keine Echtzeitdaten. Die Mail stützt sich auf deine Beobachtung.");
+    else showNote("",dep.rt?"Laut Echtzeitdaten ist diese Fahrt nicht als ausgefallen gemeldet. Deine Beobachtung zählt trotzdem.":"Die App kennt nur den Fahrplan, keine Echtzeit. Die Mail stützt sich auf deine Beobachtung.");
   }else if(df===null){
-    showNote("","Für diese Fahrt gibt es keine Echtzeitdaten. Die Mail stützt sich auf deine Beobachtung.");
+    showNote("","Die App kennt nur den Fahrplan, keine Echtzeit. Die Mail stützt sich auf deine Beobachtung.");
   }else if(T==="frueh"){
     if(df<0)showNote("good",`Laut Echtzeitdaten ist ${V.art.dieser} ${V.fz} um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} zu früh.`+beleg);
     else showNote("",df>0?`Laut Echtzeitdaten war ${V.art.dieser} ${V.fz} ${mins(df)} verspätet (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:`Laut Echtzeitdaten war ${V.art.dieser} ${V.fz} pünktlich. Deine Beobachtung zählt trotzdem.`);
@@ -1605,7 +1570,7 @@ $("searchForm").addEventListener("submit",async e=>{
   const q=$("stopQuery").value.trim();if(q.length<2){toast("Gib mindestens zwei Buchstaben ein.");return}
   setStatus("load","Suche Haltestellen …");
   let list;
-  try{list=await searchStops(q)}catch(err){setStatus("warn","Die Suche ist gerade nicht erreichbar. Trag die Haltestelle in Schritt 3 selbst ein.");openManual();return}
+  try{list=await searchStops(q)}catch(err){setStatus("warn",err.noCity?"Für diesen Ort hat die App noch keinen Fahrplan. Stell unter Einstellungen eine Stadt ein oder trag die Haltestelle in Schritt 3 selbst ein.":"Der Fahrplan lässt sich gerade nicht laden. Prüf die Internetverbindung oder trag die Haltestelle in Schritt 3 selbst ein.");openManual();return}
   if(!list.length){setStatus("warn",`Keine ${V.stopWord} mit „${q}“ gefunden.`);return}
   setStops(list,"Suchergebnisse");
   setStatus("ok",list.length===1?"Eine Haltestelle gefunden.":`${list.length} Haltestellen gefunden. Wähl die richtige aus.`);
