@@ -31,7 +31,7 @@ jobs:
       - name: Fahrplan-API testen (Transitous)
         continue-on-error: true
         run: |
-          UA="Meckerbahn/1.0 (+https://github.com/ottos11/meckerbahn)"
+          UA="Meckerbahn/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
           echo "== Haltestellen nahe Hamburg Jungfernstieg"
           curl -sS -A "$UA" "https://api.transitous.org/api/v1/reverse-geocode?place=53.5529,9.9937&type=STOP&numResults=20" > stops.json
           jq -c '.[] | {type,name,id,modes}' stops.json | head -12

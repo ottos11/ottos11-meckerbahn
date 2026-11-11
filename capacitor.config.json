@@ -5,5 +5,5 @@
   "android": {
     "adjustMarginsForEdgeToEdge": "force"
   },
-  "appendUserAgent": "Meckerbahn/1.0 (+https://github.com/ottos11/meckerbahn)"
+  "appendUserAgent": "Meckerbahn/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
 }
