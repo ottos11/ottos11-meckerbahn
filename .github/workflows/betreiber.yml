@@ -1,0 +1,39 @@
+name: Betreiber auflisten
+
+# Hilfswerkzeug für die Städte-Datei: zeigt, unter welchen Namen und
+# Verkehrsarten der Fahrplandienst die Betriebe einer Stadt führt.
+on:
+  workflow_dispatch:
+    inputs:
+      orte:
+        description: 'Orte als "Name|Breite,Länge", durch Semikolon getrennt'
+        required: false
+        default: 'Hamburg|53.5527,10.0066;Berlin|52.5219,13.4132;Berlin-Zoo|52.5072,13.3324;München|48.1372,11.5755;München-Hbf|48.1402,11.5586;Köln|50.9432,6.9586;Köln-Neumarkt|50.9359,6.9480;Frankfurt|50.1136,8.6797;Frankfurt-Hbf|50.1071,8.6638'
+
+jobs:
+  liste:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Betreiber je Ort
+        env:
+          ORTE: ${{ inputs.orte }}
+        run: |
+          UA="Meckerbahn/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
+          FROM=$(date -u -d '-30 min' +%Y-%m-%dT%H:%M:%SZ)
+          IFS=';' read -ra LIST <<< "$ORTE"
+          for O in "${LIST[@]}"; do
+            NAME="${O%%|*}"; POS="${O##*|}"
+            echo "=================== $NAME ($POS)"
+            curl -sS -A "$UA" "https://api.transitous.org/api/v1/reverse-geocode?place=$POS&type=STOP&numResults=30" > stops.json
+            jq -c '[.[] | {name,modes}] | unique | .[:14][]' stops.json
+            for M in BUS "SUBWAY,SUBURBAN,TRAM" "REGIONAL_RAIL,REGIONAL_FAST_RAIL"; do
+              ID=$(jq -r --arg m "$M" '[.[] | select((.modes // []) as $ms | ($m | split(",")) | any(. as $x | $ms | index($x)))][0].id // empty' stops.json)
+              [ -z "$ID" ] && { echo "-- $M: keine Haltestelle"; continue; }
+              echo "-- $M ab $ID"
+              curl -sS -A "$UA" -G "https://api.transitous.org/api/v6/stoptimes" \
+                --data-urlencode "stopId=$ID" --data-urlencode "time=$FROM" \
+                -d n=300 -d window=5400 --data-urlencode "mode=$M" -d radius=500 -d withAlerts=false > st.json
+              jq -c '[.stopTimes[] | {ag:.agencyName,mode,l:.routeShortName,rt:.realTime}] | group_by([.ag,.mode]) | .[] | {ag:.[0].ag,mode:.[0].mode,rt:(map(select(.rt))|length),n:length,linien:(map(.l)|unique|.[:25]|join(" "))}' st.json || head -c 400 st.json
+              sleep 1
+            done
+          done
