@@ -1,0 +1,36 @@
+name: Haltestelle prüfen
+
+# Hilfswerkzeug: zeigt für einen Ort, welche Haltestellen der Fahrplandienst
+# findet und von welcher Haltestelle jede Abfahrt im Umkreis stammt.
+on:
+  workflow_dispatch:
+    inputs:
+      orte:
+        description: 'Orte als "Name|Breite,Länge", durch Semikolon getrennt'
+        required: false
+        default: 'Hamburg-Rathausmarkt|53.5507,9.9937;Augsburg-Koenigsplatz|48.3653,10.8939'
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Abfahrten je Haltestelle
+        env:
+          ORTE: ${{ inputs.orte }}
+        run: |
+          UA="Meckerlinie/1.0 (+https://github.com/ottos11/ottos11-meckerbahn)"
+          FROM=$(date -u -d '-30 min' +%Y-%m-%dT%H:%M:%SZ)
+          IFS=';' read -ra LIST <<< "$ORTE"
+          for O in "${LIST[@]}"; do
+            NAME="${O%%|*}"; POS="${O##*|}"
+            echo "=================== $NAME ($POS)"
+            curl -sS -A "$UA" "https://api.transitous.org/api/v1/reverse-geocode?place=$POS&type=STOP&numResults=12" > stops.json
+            jq -c '.[] | {name,id,modes,lat,lon}' stops.json
+            ID=$(jq -r '[.[] | select((.modes // []) | index("BUS"))][0].id // empty' stops.json)
+            echo "-- Abfahrten ab $ID, Umkreis 250 m"
+            curl -sS -A "$UA" -G "https://api.transitous.org/api/v6/stoptimes" \
+              --data-urlencode "stopId=$ID" --data-urlencode "time=$FROM" \
+              -d n=200 -d window=3600 --data-urlencode "mode=BUS,SUBWAY,SUBURBAN,TRAM" -d radius=250 -d withAlerts=false > st.json
+            jq -c '[.stopTimes[] | {halt:.place.name,id:.place.stopId,mode,l:.routeShortName}] | group_by([.halt,.id,.mode]) | .[] | {halt:.[0].halt,id:.[0].id,mode:.[0].mode,linien:(map(.l)|unique|join(" "))}' st.json || head -c 400 st.json
+            sleep 1
+          done
