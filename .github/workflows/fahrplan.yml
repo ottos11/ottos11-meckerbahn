@@ -1,0 +1,69 @@
+name: Fahrplan aufbereiten
+
+# Lädt einmal pro Woche den Sollfahrplan Deutschland (DELFI, GTFS, CC BY 4.0) und erzeugt
+# daraus kleine Fahrplandateien je Stadt. Sie landen im Zweig "fahrplan", die App lädt sie von dort.
+on:
+  schedule:
+    - cron: '17 3 * * 2'
+  workflow_dispatch:
+    inputs:
+      staedte:
+        description: 'Städte, durch Komma getrennt (leer: alle aus www/cities.js)'
+        required: false
+        default: 'augsburg,hamburg'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fahrplan
+  cancel-in-progress: false
+
+jobs:
+  aufbereiten:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sollfahrplan Deutschland laden
+        run: |
+          UA="Meckerlinie/1.0 (+https://github.com/${{ github.repository }})"
+          DELFI='https://www.opendata-oepnv.de/ht/de/datensaetze/sharing?tx_vrrkit_view%5Bsharing%5D=eyJkYXRhc2V0IjoiZGV1dHNjaGxhbmR3ZWl0ZS1zb2xsZmFocnBsYW5kYXRlbi1ndGZzIn0'
+          ok=0
+          for U in "$DELFI" "https://download.gtfs.de/germany/nv_free/latest.zip"; do
+            echo "Lade $U"
+            if curl -fL --retry 3 -A "$UA" -o gtfs.zip "$U" && unzip -l gtfs.zip | grep -q stop_times.txt; then ok=1; echo "QUELLE=$U" >> $GITHUB_ENV; break; fi
+            echo "Keine gültige GTFS-Datei, nächste Quelle"
+          done
+          [ $ok = 1 ] || exit 1
+          ls -l gtfs.zip
+          unzip -l gtfs.zip
+
+      - name: Fahrplandateien erzeugen
+        env:
+          STAEDTE: ${{ inputs.staedte || 'augsburg,hamburg' }}
+        run: |
+          python3 tools/fahrplan.py gtfs.zip out "$STAEDTE"
+          cat out/manifest.json
+          du -sh out/*
+          find out -type f | wc -l
+
+      - name: In Zweig "fahrplan" veröffentlichen
+        run: |
+          cd out
+          cat > README.md <<EOF
+          # Fahrplandateien für Meckerlinie
+
+          Automatisch erzeugt vom Workflow "Fahrplan aufbereiten". Nicht von Hand ändern.
+
+          Datenquelle: DELFI e.V., Sollfahrplandaten Deutschland (GTFS), Lizenz CC BY 4.0
+          (https://creativecommons.org/licenses/by/4.0/). Aufbereitet und gekürzt auf Bus,
+          U-, S- und Straßenbahn je Stadt. Geladen von: $QUELLE
+          EOF
+          git init -q -b fahrplan
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Fahrplan $(date -u +%F)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" fahrplan
