@@ -204,6 +204,7 @@ def main():
     pat_ix = {c["id"]: {} for c in cities}      # muster -> nummer, je Stadt
     deps = defaultdict(lambda: defaultdict(set))  # cluster-id -> (muster, service) -> minuten
     used_svc = set()
+    agn = defaultdict(lambda: defaultdict(int))   # Betriebe je Stadt, für die Zuordnung in cities.js
     ix, r = rows(z, "stop_times.txt")
     i_trip, i_stop, i_seq, i_dep = ix["trip_id"], ix["stop_id"], ix["stop_sequence"], ix["departure_time"]
     i_arr, i_pick = ix.get("arrival_time"), ix.get("pickup_type")
@@ -231,6 +232,7 @@ def main():
             deps[cl["city"] + "|" + cl["id"]][(pi[p], svc)].add(minute)
             cl["modes"].add(mode)
             used_svc.add(svc)
+            agn[cl["city"]][(ag, mode)] += 1
 
     for row in r:
         n_rows += 1
@@ -335,7 +337,8 @@ def main():
         with open(os.path.join(outdir, cid, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"city": cid, "built": built, "from": start.isoformat(), "days": DAYS, "stops": index},
                       f, ensure_ascii=False, separators=(",", ":"))
-        man["cities"][cid] = {"stops": len(index), "patterns": len(pats)}
+        man["cities"][cid] = {"stops": len(index), "patterns": len(pats),
+                              "agencies": [[a, m, n] for (a, m), n in sorted(agn[cid].items(), key=lambda kv: -kv[1])]}
         log(f"{cid}: {len(index)} Haltestellen, {len(pats)} Fahrtmuster, {n_dep} Abfahrtszeiten-Einträge")
     with open(os.path.join(outdir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(man, f, ensure_ascii=False, indent=1)

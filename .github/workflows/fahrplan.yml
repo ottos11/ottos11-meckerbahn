@@ -10,7 +10,7 @@ on:
       staedte:
         description: 'Städte, durch Komma getrennt (leer: alle aus www/cities.js)'
         required: false
-        default: 'augsburg,hamburg'
+        default: ''
 
 permissions:
   contents: write
@@ -42,10 +42,10 @@ jobs:
 
       - name: Fahrplandateien erzeugen
         env:
-          STAEDTE: ${{ inputs.staedte || 'augsburg,hamburg' }}
+          STAEDTE: ${{ inputs.staedte }}
         run: |
           python3 tools/fahrplan.py gtfs.zip out "$STAEDTE"
-          cat out/manifest.json
+          python3 -c "import json;m=json.load(open('out/manifest.json'));[print(c,v['stops'],'Haltestellen | Betriebe:',[a[:2] for a in v['agencies']]) for c,v in m['cities'].items()]"
           du -sh out/*
           find out -type f | wc -l
 
