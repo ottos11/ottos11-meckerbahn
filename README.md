@@ -58,7 +58,15 @@ Bei jedem Push auf `main` baut GitHub Actions automatisch eine neue APK.
 1. Im Repo rechts auf **Releases** gehen.
 2. `meckerlinie.apk` auf dem Handy herunterladen und installieren, oder das Repo in Obtainium eintragen.
 
-Jede APK wird mit demselben Schlüssel signiert (`signing/debug.keystore`, Standard-Passwort `android`), damit sich neue Versionen als Update installieren lassen.
+Die Test-APK wird mit demselben Schlüssel signiert (`signing/debug.keystore`, Standard-Passwort `android`), damit sich neue Versionen als Update installieren lassen. Sie hat die Paket-ID `de.ottos11.meckerbahn` und ist nur zum Testen gedacht.
+
+## Google Play
+
+Derselbe Build erzeugt zusätzlich ein App-Bundle für Google Play (`meckerlinie-play.aab`, unter Actions beim jeweiligen Lauf als Build-Ergebnis). Es hat die Paket-ID `de.ottos11.meckerlinie` und ist mit dem Upload-Schlüssel signiert.
+
+- Der Upload-Schlüssel liegt nur in den Repo-Secrets: `UPLOAD_KEYSTORE_BASE64` (die PKCS12-Datei als Base64, Alias `upload`) und `UPLOAD_KEY_PASSWORD`. Fehlen sie, wird nur die Test-APK gebaut.
+- Den eigentlichen App-Signaturschlüssel verwaltet Google (Play App Signing). Geht der Upload-Schlüssel verloren, lässt er sich in der Play Console zurücksetzen.
+- Ziel-Android-Version ist Android 16 (API 36), wie Google Play es für neue Apps verlangt.
 
 ## Aufbau
 

@@ -75,24 +75,24 @@ jobs:
       - name: App-Bundle für Google Play bauen
         working-directory: android
         env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
           UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
         run: |
           # Eigene Paket-ID für den Play Store, signiert mit dem Upload-Schlüssel.
-          # Der Schlüssel liegt verschlüsselt in signing/upload.p12.enc, das Passwort nur im Secret UPLOAD_KEY_PASSWORD.
-          if [ -z "$UPLOAD_KEY_PASSWORD" ] || [ ! -f ../signing/upload.p12.enc ]; then
+          # Schlüssel und Passwort liegen nur in den Repo-Secrets UPLOAD_KEYSTORE_BASE64 und UPLOAD_KEY_PASSWORD.
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ] || [ -z "$UPLOAD_KEY_PASSWORD" ]; then
             echo "::notice::Upload-Schlüssel fehlt noch, das App-Bundle für Google Play wird nicht gebaut."
             exit 0
           fi
           sed -i -E 's/applicationId "[^"]+"/applicationId "de.ottos11.meckerlinie"/' app/build.gradle
           grep applicationId app/build.gradle
-          printf '%s' "$UPLOAD_KEY_PASSWORD" > "$RUNNER_TEMP/pw"
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in ../signing/upload.p12.enc -out "$RUNNER_TEMP/upload.p12" -pass file:"$RUNNER_TEMP/pw"
+          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/upload.p12"
           ./gradlew bundleRelease --no-daemon \
             -Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload.p12" \
             -Pandroid.injected.signing.store.password="$UPLOAD_KEY_PASSWORD" \
             -Pandroid.injected.signing.key.alias=upload \
             -Pandroid.injected.signing.key.password="$UPLOAD_KEY_PASSWORD"
-          rm -f "$RUNNER_TEMP/upload.p12" "$RUNNER_TEMP/pw"
+          rm -f "$RUNNER_TEMP/upload.p12"
           cp app/build/outputs/bundle/release/*.aab ../meckerlinie-play.aab
           keytool -printcert -jarfile ../meckerlinie-play.aab | grep -E "Owner|Eigentümer|SHA256" | head -3
 
