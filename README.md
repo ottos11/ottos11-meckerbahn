@@ -12,7 +12,9 @@ So läuft eine Meldung ab:
 1. Art des Vorfalls wählen. Bei Belästigung, Betteln, Gestank und Dreck zusätzlich: im Fahrzeug oder an der Haltestelle, und was genau.
 2. Standort verwenden oder die Haltestelle über ihren Namen suchen. Datum und Uhrzeit lassen sich ändern.
 3. Linie, Richtung und Abfahrt aus dem Fahrplan wählen. Die Haltestelle zeigt alle Linien, nach Bus, U-Bahn, S-Bahn und Tram sortiert. Bei Meldungen an der Haltestelle reicht die Angabe, was dort hält.
-4. Bis zu drei Fotos anhängen, Beschwerde prüfen und per Mail-App oder Kontaktformular abschicken.
+4. Beschwerde prüfen und per Mail-App oder Kontaktformular abschicken. Bei Dreck und Gestank lassen sich bis zu drei Fotos anhängen, Fotos von Menschen sind nicht vorgesehen.
+
+„Meckern mit Maß“: Schritt 1 erinnert je nach Vorfall daran, was eine berechtigte Beschwerde ist. Bei einer Verspätung von höchstens drei Minuten weist die App vor dem Absenden darauf hin, dass das meist noch normal ist.
 
 Zum Ausprobieren gibt es unter Einstellungen einen Testmodus: Dann gehen alle Beschwerden mit „[Test]“ im Betreff an die eigene Adresse statt an den Verkehrsbetrieb.
 
