@@ -683,8 +683,11 @@ const isWanted=x=>!Array.isArray(x.modes)||x.modes.some(m=>V.want.includes(m));
 // Haltestellennamen vergleichbar machen. In Hamburg heißt die Bushaltestelle am Bahnhof
 // "U S Jungfernstieg", sie gehört zu "Jungfernstieg". Zusätze in Klammern bleiben, denn
 // "Rathausmarkt (Petrikirche)" ist eine andere Haltestelle als "Rathausmarkt".
-const stopKey=n=>String(n||"").toLowerCase().replace(/^((u|s|s\+u|u\+s|bf\.?|bahnhof)\s+)+/,"").replace(/\s+/g," ").trim();
-const plainName=n=>stopKey(n)===String(n||"").toLowerCase().replace(/\s+/g," ").trim();
+// Schreibweisen angleichen: "Hauptbahnhof" und "Hbf", "Bahnhof", "Bhf" und "Bf.", Kommas.
+const stopKey=n=>String(n||"").toLowerCase()
+  .replace(/\bhauptbahnhof\b/g,"hbf").replace(/\b(bahnhof|bhf|bf)\b\.?/g,"bf").replace(/[.,]/g," ")
+  .replace(/\s+/g," ").trim().replace(/^((u|s|s\+u|u\+s|bf)\s+)+/,"").trim();
+const plainName=n=>!/^(u|s|s\+u|u\+s|bf\.?|bahnhof)\s/i.test(String(n||"").trim());
 async function nearbyStops(lat,lon){
   const m=await tget("/v1/reverse-geocode",{place:`${lat},${lon}`,type:"STOP",numResults:20});
   const by=new Map();
@@ -729,8 +732,10 @@ async function stopDepartures(stop){
   const lo=ref-60*60000,hi=ref+40*60000;
   // Der Umkreis erfasst auch Nachbarhaltestellen. Behalten wird nur, was zu dieser Haltestelle gehört.
   const want=stopKey(stop.name);
+  // Zur Haltestelle gehört, was gleich heißt, dieselbe Kennung hat oder direkt daneben liegt (40 m).
   const mine=st=>{const pl=st.place||{},id=pl.stopId||"";
-    return stopKey(pl.name)===want||stop.ids.some(x=>id===x||id.startsWith(x+":"))};
+    if(stopKey(pl.name)===want||stop.ids.some(x=>id===x||id.startsWith(x+":")))return true;
+    return stop.lat!==undefined&&pl.lat!==undefined&&distM(pl,stop.lat,stop.lon)<=40};
   let all=[...seen.values()];
   // Nur wenn die Daten gar keine Haltestellennamen liefern, bleibt der ganze Umkreis.
   if(all.some(st=>st.place&&st.place.name))all=all.filter(mine);
