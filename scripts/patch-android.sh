@@ -64,5 +64,10 @@ cat > "$RES/mipmap-anydpi-v26/$n.xml" <<'XML'
 XML
 done
 
+# Google Play verlangt seit 31.08.2026 für neue Apps Android 16 (API 36)
+sed -i -E 's/compileSdkVersion = [0-9]+/compileSdkVersion = 36/; s/targetSdkVersion = [0-9]+/targetSdkVersion = 36/' android/variables.gradle
+grep -q suppressUnsupportedCompileSdk android/gradle.properties || echo "android.suppressUnsupportedCompileSdk=36" >> android/gradle.properties
+grep -E "compileSdk|targetSdk|minSdk" android/variables.gradle
+
 echo "Manifest nach dem Patch:"
 cat "$MANIFEST"

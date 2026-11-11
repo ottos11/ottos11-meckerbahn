@@ -27,6 +27,8 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          ls "$ANDROID_HOME/platforms" || true
+          [ -d "$ANDROID_HOME/platforms/android-36" ] || "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" > /dev/null
 
       - name: Fahrplandateien prüfen
         continue-on-error: true
@@ -48,33 +50,19 @@ jobs:
           sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
           grep -E "versionCode|versionName" android/app/build.gradle
 
-      - name: APK bauen
+      - name: Test-APK bauen
         working-directory: android
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD_SECRET: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
-          # Fester Signaturschlüssel aus den Repo-Secrets, damit Updates installiert werden können.
-          # Ohne Secrets: Debug-Build mit dem festen Debug-Schlüssel aus signing/debug.keystore.
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
-            ./gradlew assembleRelease --no-daemon \
-              -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.p12" \
-              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD_SECRET" \
-              -Pandroid.injected.signing.key.alias=meckerbahn \
-              -Pandroid.injected.signing.key.password="$KEYSTORE_PASSWORD_SECRET"
-            rm -f "$RUNNER_TEMP/release.p12"
-          else
-            # Wie bei ArtColorCards: fester Debug-Schlüssel aus dem Repo (Standard-Passwort "android")
-            sed -i '0,/^android {/s##android {\n    signingConfigs {\n        debug {\n            storeFile file("$rootDir/../signing/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }#' app/build.gradle
-            sed -n '/signingConfigs/,+7p' app/build.gradle
-            ./gradlew assembleDebug --no-daemon
-          fi
+          # Test-APK für Obtainium: fester Debug-Schlüssel aus signing/debug.keystore (Passwort "android")
+          # und die alte Paket-ID, damit sich jede Version als Update installieren lässt.
+          sed -i '0,/^android {/s##android {\n    signingConfigs {\n        debug {\n            storeFile file("$rootDir/../signing/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }#' app/build.gradle
+          sed -n '/signingConfigs/,+7p' app/build.gradle
+          ./gradlew assembleDebug --no-daemon
 
       - name: APK umbenennen und Signatur prüfen
         run: |
-          APK=$(ls android/app/build/outputs/apk/release/*.apk android/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1)
+          APK=$(ls android/app/build/outputs/apk/debug/*.apk | head -1)
           cp "$APK" meckerlinie.apk
           "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify --print-certs meckerlinie.apk | head -3
 
@@ -83,6 +71,37 @@ jobs:
         with:
           name: meckerlinie.apk
           path: meckerlinie.apk
+
+      - name: App-Bundle für Google Play bauen
+        working-directory: android
+        env:
+          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        run: |
+          # Eigene Paket-ID für den Play Store, signiert mit dem Upload-Schlüssel.
+          # Der Schlüssel liegt verschlüsselt in signing/upload.p12.enc, das Passwort nur im Secret UPLOAD_KEY_PASSWORD.
+          if [ -z "$UPLOAD_KEY_PASSWORD" ] || [ ! -f ../signing/upload.p12.enc ]; then
+            echo "::notice::Upload-Schlüssel fehlt noch, das App-Bundle für Google Play wird nicht gebaut."
+            exit 0
+          fi
+          sed -i -E 's/applicationId "[^"]+"/applicationId "de.ottos11.meckerlinie"/' app/build.gradle
+          grep applicationId app/build.gradle
+          printf '%s' "$UPLOAD_KEY_PASSWORD" > "$RUNNER_TEMP/pw"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in ../signing/upload.p12.enc -out "$RUNNER_TEMP/upload.p12" -pass file:"$RUNNER_TEMP/pw"
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/upload.p12" \
+            -Pandroid.injected.signing.store.password="$UPLOAD_KEY_PASSWORD" \
+            -Pandroid.injected.signing.key.alias=upload \
+            -Pandroid.injected.signing.key.password="$UPLOAD_KEY_PASSWORD"
+          rm -f "$RUNNER_TEMP/upload.p12" "$RUNNER_TEMP/pw"
+          cp app/build/outputs/bundle/release/*.aab ../meckerlinie-play.aab
+          keytool -printcert -jarfile ../meckerlinie-play.aab | grep -E "Owner|Eigentümer|SHA256" | head -3
+
+      - name: App-Bundle als Build-Ergebnis speichern
+        if: hashFiles('meckerlinie-play.aab') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: meckerlinie-play-1.0.${{ github.run_number }}
+          path: meckerlinie-play.aab
 
       - name: Release mit APK veröffentlichen
         uses: softprops/action-gh-release@v2
