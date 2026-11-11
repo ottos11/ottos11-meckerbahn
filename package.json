@@ -1,0 +1,21 @@
+{
+  "name": "meckerbahn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android-App: Beschwerden zu Hamburgs U- und S-Bahn, vom verspäteten Zug bis zum verdreckten Wagen",
+  "scripts": {
+    "android:add": "cap add android",
+    "android:sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/geolocation": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0",
+    "capacitor-email-composer": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "appId": "de.ottos11.meckerbahn",
+  "appName": "Meckerbahn",
+  "webDir": "www",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force"
+  },
+  "appendUserAgent": "Meckerbahn/1.0 (+https://github.com/ottos11/meckerbahn)"
+}

@@ -1,0 +1,106 @@
+name: APK bauen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Android-SDK prüfen
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Fahrplan-API testen (Transitous)
+        continue-on-error: true
+        run: |
+          UA="Meckerbahn/1.0 (+https://github.com/ottos11/meckerbahn)"
+          echo "== Haltestellen nahe Hamburg Jungfernstieg"
+          curl -sS -A "$UA" "https://api.transitous.org/api/v1/reverse-geocode?place=53.5529,9.9937&type=STOP&numResults=20" > stops.json
+          jq -c '.[] | {type,name,id,modes}' stops.json | head -12
+          ID=$(jq -r '[.[] | select((.modes // []) | any(. == "SUBWAY" or . == "SUBURBAN"))][0].id' stops.json)
+          FROM=$(date -u -d '-60 min' +%Y-%m-%dT%H:%M:%SZ)
+          echo "== U- und S-Bahn-Abfahrten an $ID"
+          curl -sS -A "$UA" -G "https://api.transitous.org/api/v6/stoptimes" \
+            --data-urlencode "stopId=$ID" --data-urlencode "time=$FROM" \
+            -d n=200 -d window=6000 --data-urlencode "mode=SUBWAY,SUBURBAN" -d radius=250 -d withAlerts=false > st.json
+          jq -c '[.stopTimes[] | {l:.routeShortName,to:(.headsign // .tripTo.name),ag:.agencyName,mode}] | unique | .[:30][]' st.json || head -c 800 st.json
+          jq -c '.stopTimes[:4][] | {routeShortName,headsign,realTime,cancelled,sched:.place.scheduledDeparture,dep:.place.departure}' st.json || true
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Android-Projekt erzeugen
+        run: |
+          # Versionsnummer in die App schreiben (Anzeige unter Einstellungen)
+          sed -i "s/__APP_VERSION__/1.0.${{ github.run_number }}/" www/index.html
+          npx cap add android
+          bash scripts/patch-android.sh
+          npx cap sync android
+          # Versionsnummer = Build-Nummer, damit Obtainium Releases und App-Version zuordnen kann
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      - name: APK bauen
+        working-directory: android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD_SECRET: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          # Fester Signaturschlüssel aus den Repo-Secrets, damit Updates installiert werden können.
+          # Ohne Secrets: Debug-Build mit dem festen Debug-Schlüssel aus signing/debug.keystore.
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
+            ./gradlew assembleRelease --no-daemon \
+              -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.p12" \
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD_SECRET" \
+              -Pandroid.injected.signing.key.alias=meckerbahn \
+              -Pandroid.injected.signing.key.password="$KEYSTORE_PASSWORD_SECRET"
+            rm -f "$RUNNER_TEMP/release.p12"
+          else
+            # Wie bei ArtColorCards: fester Debug-Schlüssel aus dem Repo (Standard-Passwort "android")
+            sed -i '0,/^android {/s##android {\n    signingConfigs {\n        debug {\n            storeFile file("$rootDir/../signing/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }#' app/build.gradle
+            sed -n '/signingConfigs/,+7p' app/build.gradle
+            ./gradlew assembleDebug --no-daemon
+          fi
+
+      - name: APK umbenennen und Signatur prüfen
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk android/app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1)
+          cp "$APK" meckerbahn.apk
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME"/build-tools | sort -V | tail -1)/apksigner verify --print-certs meckerbahn.apk | head -3
+
+      - name: APK als Build-Ergebnis speichern
+        uses: actions/upload-artifact@v4
+        with:
+          name: meckerbahn.apk
+          path: meckerbahn.apk
+
+      - name: Release mit APK veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Meckerbahn 1.0.${{ github.run_number }}
+          body: |
+            Automatisch gebaute Android-App.
+            Auf dem Handy herunterladen und installieren (Installation aus unbekannten Quellen einmal erlauben).
+          files: meckerbahn.apk
+          make_latest: true

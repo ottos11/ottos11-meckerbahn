@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Meckerbahn</title>
+<style>
+/* Leitbild: Hamburgs Schnellbahnen. Das Blau des U-Bahn-Zeichens trägt
+   Auswahl und Aktion, das Grün des S-Bahn-Zeichens kennzeichnet S-Linien,
+   Gelb steht für Hinweise. Schrift aus der Welt der Fahrzeugbeschilderung
+   (Barlow). Aufbau: eine Spalte, vier nummerierte Schritte, unten drei
+   Reiter. */
+@font-face{font-family:"Barlow";src:url("fonts/Barlow-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Barlow";src:url("fonts/Barlow-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Barlow";src:url("fonts/Barlow-SemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Barlow Semi Condensed";src:url("fonts/BarlowSemiCondensed-SemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Barlow Semi Condensed";src:url("fonts/BarlowSemiCondensed-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
+
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#171C22; --muted:#5A6470; --line:#D6DCE4;
+  --accent:#0B5CAD; --on-accent:#FFFFFF; --accent-soft:#DDE9F7;
+  --s-green:#1B7F3B; --on-s-green:#FFFFFF;
+  --sign-yellow:#F5B800;
+  --warn-soft:#FFF1CC; --shade:23,28,34;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#10141A; --surface:#1A2029; --ink:#E8EDF3; --muted:#9DA8B5; --line:#2C3542;
+  --accent:#6FB1FF; --on-accent:#04203F; --accent-soft:#17304D;
+  --s-green:#5FD083; --on-s-green:#04260F;
+  --warn-soft:#3B2F0F; --shade:0,0,0;
+  color-scheme:dark;
+}}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--f-body);-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+svg{flex:none}
+/* Liniensymbole: Strichstil hier, weil <use> ihn nicht aus <defs> erbt */
+svg:not(.mark){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+h1,h2,h3,p,dl,dd,ul{margin:0}
+ul{padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{max-width:560px;margin:0 auto;padding-block:calc(14px + env(safe-area-inset-top,0px)) calc(104px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:center;gap:10px;padding-bottom:14px}
+.top .mark{width:34px;height:34px}
+.top h1{font:700 1.55rem/1.1 var(--f-display)}
+
+/* Schritte */
+.step{display:flex;flex-direction:column;gap:14px;padding-block:20px;border-top:1px solid var(--line)}
+.step.first{border-top:0;padding-top:4px}
+.step-head{display:flex;align-items:center;gap:10px}
+.num{width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);font:700 .95rem/26px var(--f-display);text-align:center;flex:none}
+.num.done{background:var(--accent);color:var(--on-accent)}
+h2{font:600 1.3rem/1.2 var(--f-display)}
+h3{font:600 1.05rem/1.25 var(--f-display)}
+.hint{font-size:.85rem;color:var(--muted)}
+
+/* Felder */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.lbl{font-weight:500;font-size:.92rem}
+.field>label small{font-weight:400;color:var(--muted)}
+.ctl{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:0 12px;min-height:48px;width:100%;min-width:0}
+textarea.ctl{padding:12px;min-height:84px;resize:vertical;line-height:1.4}
+select.ctl{appearance:none;-webkit-appearance:none;padding-right:38px;text-overflow:ellipsis}
+select.ctl:disabled{color:var(--muted);opacity:1;background:transparent}
+.ctl:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.sel{position:relative;display:block}
+.sel::after{content:"";position:absolute;right:15px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:340px){.row2{grid-template-columns:1fr}}
+
+/* Knöpfe */
+.btn{font:600 1rem/1.2 var(--f-body);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;text-decoration:none;text-align:center;white-space:nowrap}
+.btn svg{width:20px;height:20px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.quiet{border-color:transparent;background:transparent;color:var(--accent);padding:0 6px;min-height:40px}
+.btn[aria-disabled="true"],.btn:disabled{opacity:.45;pointer-events:none}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.actions>.btn{flex:1 1 150px}
+.iconbtn{width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.iconbtn svg{width:20px;height:20px}
+
+/* Schritt 1: Vorfallart */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{position:relative;display:block}
+.tile input{position:absolute;opacity:0;pointer-events:none}
+.tile .t{display:flex;align-items:center;gap:10px;height:100%;min-height:58px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);font-weight:500;line-height:1.2;cursor:pointer}
+.sym{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);display:grid;place-items:center;font:700 1.2rem/1 var(--f-display);flex:none}
+.tile input:checked+.t{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.tile input:checked+.t .sym{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.tile input:focus-visible+.t{outline:2px solid var(--accent);outline-offset:2px}
+.tiles.three{grid-template-columns:repeat(3,1fr)}
+.tiles.three .t{flex-direction:column;justify-content:center;text-align:center;gap:6px;padding:10px 4px}
+.sym svg{width:18px;height:18px}
+.sub{display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 .92rem/1.2 var(--f-body);min-height:40px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;text-align:left}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+
+/* Statuszeile und Hinweise */
+.status{display:flex;gap:10px;align-items:flex-start;font-size:.9rem;color:var(--muted)}
+.status .dot{width:10px;height:10px;border-radius:50%;background:var(--line);flex:none;margin-top:6px}
+.status[data-state="ok"] .dot{background:var(--accent)}
+.status[data-state="warn"] .dot{background:var(--sign-yellow)}
+.status[data-state="warn"]{color:var(--ink)}
+.status[data-state="load"] .dot{width:14px;height:14px;margin-top:4px;background:none;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.status[data-state="load"] .dot{animation:none}}
+.note{font-size:.92rem;padding:10px 12px;border-radius:8px;background:var(--surface);border:1.5px solid var(--line)}
+.note.good{background:var(--accent-soft);border-color:transparent}
+.note.warn{background:var(--warn-soft);border-color:transparent}
+.search{display:flex;gap:8px}
+.search .ctl{flex:1}
+details.more>summary{list-style:none;cursor:pointer;color:var(--accent);font-weight:600;font-size:.95rem;min-height:40px;display:flex;align-items:center;gap:6px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary svg{width:18px;height:18px}
+details.more[open]>summary svg{transform:rotate(180deg)}
+details.more .inner{display:flex;flex-direction:column;gap:12px;padding-top:8px}
+
+/* Das Schild: die gemeldete Fahrt */
+.plate{background:var(--surface);border:2px solid var(--accent);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;align-items:center}
+.plate .mark{width:42px;height:42px;grid-row:span 2;align-self:start}
+.plate .stopname{font:700 1.35rem/1.15 var(--f-display);overflow-wrap:anywhere}
+.plate .trip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.badge{font:700 1.05rem/1 var(--f-display);background:var(--accent);color:var(--on-accent);border-radius:5px;padding:5px 8px;min-width:36px;text-align:center;font-variant-numeric:tabular-nums}
+.plate .times{grid-column:1/-1;border-top:1px solid var(--line);margin-top:10px;padding-top:10px;display:flex;gap:6px 20px;flex-wrap:wrap}
+.times dt{font-size:.8rem;color:var(--muted)}
+.times dd{font:700 1.15rem/1.2 var(--f-display);font-variant-numeric:tabular-nums}
+.badge.s{background:var(--s-green);color:var(--on-s-green)}
+.pill{display:inline-block;font-weight:600;font-size:.85rem;padding:3px 10px;border-radius:999px;background:var(--sign-yellow);color:#3A2E00}
+
+/* Fotos */
+.vh{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.ph{position:relative;width:92px;height:92px;border-radius:8px;overflow:hidden;border:1.5px solid var(--line);background:var(--surface)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph button{position:absolute;top:3px;right:3px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(0,0,0,.62);color:#FFFFFF;display:grid;place-items:center;cursor:pointer}
+.ph button svg{width:16px;height:16px}
+
+/* Die Mail */
+.mailbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mail{background:var(--surface);border-radius:4px;box-shadow:0 1px 2px rgba(var(--shade),.14),0 10px 24px -12px rgba(var(--shade),.35);padding:16px}
+.mail .hdr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;font-size:.92rem;padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.mail .hdr dt{color:var(--muted)}
+.mail .hdr dd{overflow-wrap:anywhere;font-weight:500}
+.mail .hdr dd small{display:block;font-weight:400;color:var(--muted);font-size:.82rem;margin-top:2px}
+.mail .hdr dd small.warn{color:var(--ink);background:var(--warn-soft);padding:6px 8px;border-radius:6px;margin-top:6px}
+.mail .body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.95rem;line-height:1.5}
+.saved{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+/* Verlauf */
+.view-head{display:flex;flex-direction:column;gap:6px;padding-block:4px 16px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.linecard{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.linecard .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.linecard .head h3{flex:1;min-width:0}
+.inc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding-block:8px;border-top:1px solid var(--line)}
+#opList .inc:first-child{border-top:0;padding-top:0}
+.inc .when{font-weight:600;font-variant-numeric:tabular-nums}
+.inc .what{font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
+.empty{display:flex;flex-direction:column;gap:14px;align-items:flex-start;padding:20px 16px;border:1.5px dashed var(--line);border-radius:10px}
+
+/* Einstellungen */
+.group{display:flex;flex-direction:column;gap:14px;padding-block:20px;border-top:1px solid var(--line)}
+.group.first{border-top:0;padding-top:0}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;cursor:pointer}
+.switch span{font-weight:500;font-size:.95rem;min-width:0}
+.switch span small{display:block;font-weight:400;color:var(--muted);font-size:.85rem}
+.switch input{appearance:none;-webkit-appearance:none;width:48px;height:28px;border-radius:999px;background:var(--line);position:relative;flex:none;margin:0;cursor:pointer;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(var(--shade),.3);transition:transform .15s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(20px)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:999px;background:var(--surface);padding:3px}
+.seg label{position:relative;display:block}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:grid;place-items:center;min-height:40px;border-radius:999px;font-weight:500;cursor:pointer}
+.seg input:checked+span{background:var(--accent);color:var(--on-accent);font-weight:600}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.about{font-size:.9rem;color:var(--muted);display:flex;flex-direction:column;gap:8px}
+.about a,.credits a{color:inherit}
+.credits{font-size:.8rem;color:var(--muted);padding-top:16px;border-top:1px solid var(--line)}
+
+/* Reiter unten */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+.tabs button{flex:1;max-width:180px;background:none;border:0;color:var(--muted);font:500 .8rem/1.2 var(--f-body);display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px 10px;cursor:pointer}
+.tabs .ic{width:58px;height:30px;border-radius:999px;display:grid;place-items:center}
+.tabs svg{width:22px;height:22px}
+.tabs button[aria-current="page"]{color:var(--ink);font-weight:600}
+.tabs button[aria-current="page"] .ic{background:var(--accent-soft);color:var(--accent)}
+body.typing .tabs{display:none}
+
+/* Meldung unten und Blatt für die Sammelbeschwerde */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:20;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:500;font-size:.92rem;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 6px 20px -6px rgba(var(--shade),.5)}
+.toast button{font:inherit;font-weight:600;background:none;border:0;color:var(--sign-yellow);cursor:pointer;padding:2px 0}
+dialog.sheet{border:0;padding:0;background:var(--bg);color:var(--ink);width:100%;max-width:560px;max-height:88vh;margin:auto auto 0;border-radius:16px 16px 0 0}
+dialog.sheet::backdrop{background:rgba(8,12,18,.55)}
+.sheet-in{display:flex;flex-direction:column;gap:14px;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-h" viewBox="0 0 32 32"><path fill="#0B5CAD" d="M6 2.5h20A3.5 3.5 0 0 1 29.5 6v15a3.5 3.5 0 0 1-3.5 3.5H13.9l-5.6 4.9c-.8.7-2.1.1-2-1l.3-4.1A3.5 3.5 0 0 1 2.5 21V6A3.5 3.5 0 0 1 6 2.5z"/><rect x="8.5" y="5.5" width="15" height="13" rx="3.2" fill="#FFFFFF"/><rect x="10.7" y="7.6" width="10.6" height="5" rx="1.3" fill="#0B5CAD"/><circle cx="12.3" cy="15.4" r="1.15" fill="#0B5CAD"/><circle cx="19.7" cy="15.4" r="1.15" fill="#0B5CAD"/><rect x="10" y="20" width="12" height="1.9" rx=".95" fill="#FFFFFF"/></symbol>
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <symbol id="i-pin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+      <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7.5 8.5 6 8.5-6"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 9A8 8 0 0 0 5 8.5M4.5 15A8 8 0 0 0 19 15.5"/><path d="M5 4v4.5h4.5M19 20v-4.5h-4.5"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+      <symbol id="i-report" viewBox="0 0 24 24"><path d="M4 5h16v11h-9l-4 4v-4H4z"/><path d="M12 8v3.2M12 13.4v.1"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6v.1M4.5 12v.1M4.5 18v.1"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-smell" viewBox="0 0 24 24"><path d="M7 4c-2 2.2 2 4.4 0 6.6s2 4.4 0 6.6M12 4c-2 2.2 2 4.4 0 6.6s2 4.4 0 6.6M17 4c-2 2.2 2 4.4 0 6.6s2 4.4 0 6.6"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><path d="m4 16 4.5-4.5 4 4 2.5-2.5 5 5"/><circle cx="15.5" cy="9.5" r="1.2"/></symbol>
+    </g>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="top">
+    <svg class="mark" aria-hidden="true"><use href="#i-h"/></svg>
+    <h1>Meckerbahn</h1>
+  </header>
+
+  <!-- ===================== Melden ===================== -->
+  <main id="v-melden">
+    <section class="step first" aria-labelledby="h1a">
+      <div class="step-head"><span class="num done" aria-hidden="true">1</span><h2 id="h1a">Was ist passiert?</h2></div>
+      <div class="field">
+        <span class="lbl" id="g1Lbl">Fahrplan</span>
+        <div class="tiles three" role="radiogroup" aria-labelledby="g1Lbl">
+          <label class="tile"><input type="radio" name="typ" value="spaet" checked><span class="t"><span class="sym" aria-hidden="true">+</span>Zu spät</span></label>
+          <label class="tile"><input type="radio" name="typ" value="ausfall"><span class="t"><span class="sym" aria-hidden="true">×</span>Ausgefallen</span></label>
+          <label class="tile"><input type="radio" name="typ" value="frueh"><span class="t"><span class="sym" aria-hidden="true">−</span>Zu früh</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="lbl" id="g2Lbl">Im Zug oder an der Haltestelle</span>
+        <div class="tiles" role="radiogroup" aria-labelledby="g2Lbl">
+          <label class="tile"><input type="radio" name="typ" value="belaestigt"><span class="t"><span class="sym" aria-hidden="true">!</span>Ich wurde belästigt</span></label>
+          <label class="tile"><input type="radio" name="typ" value="betteln"><span class="t"><span class="sym" aria-hidden="true">€</span>Betteln</span></label>
+          <label class="tile"><input type="radio" name="typ" value="gestank"><span class="t"><span class="sym" aria-hidden="true"><svg><use href="#i-smell"/></svg></span>Gestank</span></label>
+          <label class="tile"><input type="radio" name="typ" value="dreck"><span class="t"><span class="sym" aria-hidden="true"><svg><use href="#i-trash"/></svg></span>Dreck</span></label>
+        </div>
+      </div>
+      <div class="sub" id="condWrap" hidden>
+        <div class="field">
+          <span class="lbl" id="ortLbl">Wo war das?</span>
+          <div class="seg" role="radiogroup" aria-labelledby="ortLbl">
+            <label><input type="radio" name="ort" value="zug" checked><span>Im Zug</span></label>
+            <label><input type="radio" name="ort" value="halt"><span>An der Haltestelle</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl"><span id="detLbl">Was genau?</span> <small class="hint">Mehrere möglich</small></span>
+          <div class="chips" id="detChips" role="group" aria-labelledby="detLbl"></div>
+        </div>
+        <p class="note warn" id="safeNote" hidden>Bei akuter Gefahr: Polizei 110. Im Zug gibt es Notsprechstellen an den Türen, am Bahnsteig Notrufsäulen. Diese Mail ersetzt keine Anzeige bei der Polizei.</p>
+      </div>
+    </section>
+
+    <section class="step" aria-labelledby="h2a">
+      <div class="step-head"><span class="num" id="n2" aria-hidden="true">2</span><h2 id="h2a">Wann und wo?</h2></div>
+      <div class="row2">
+        <div class="field"><label for="datum">Datum</label><input class="ctl" type="date" id="datum"></div>
+        <div class="field"><label for="ist" id="istLbl">Abgefahren um</label><input class="ctl" type="time" id="ist" step="60"></div>
+      </div>
+      <button type="button" class="btn quiet" id="nowBtn" hidden style="align-self:flex-start">Wieder auf jetzt stellen</button>
+      <div class="actions">
+        <button type="button" class="btn primary" id="gpsBtn"><svg aria-hidden="true"><use href="#i-pin"/></svg><span id="gpsBtnTxt">Standort verwenden</span></button>
+        <button type="button" class="btn" id="searchToggle" aria-expanded="false" aria-controls="searchForm"><svg aria-hidden="true"><use href="#i-search"/></svg>Haltestelle suchen</button>
+      </div>
+      <form class="search" id="searchForm" hidden>
+        <input class="ctl" type="search" id="stopQuery" enterkeyhint="search" placeholder="Name der Haltestelle" aria-label="Name der Haltestelle" autocomplete="off">
+        <button class="btn" type="submit">Suchen</button>
+      </form>
+      <p class="status" id="gpsStatus" data-state="idle" aria-live="polite"><span class="dot"></span><span id="gpsText">Mit deinem Standort schlägt die App U- und S-Bahn-Haltestellen in der Nähe vor.</span></p>
+      <div class="field" id="stopField" hidden>
+        <label for="stopSel">Haltestelle</label>
+        <span class="sel"><select class="ctl" id="stopSel"></select></span>
+      </div>
+    </section>
+
+    <section class="step" aria-labelledby="h3a">
+      <div class="step-head"><span class="num" id="n3" aria-hidden="true">3</span><h2 id="h3a">Welcher Zug?</h2></div>
+      <div class="sub" id="tripBox">
+        <p class="hint" id="s3Empty">Sobald die Haltestelle feststeht, wählst du hier Linie, Richtung und Abfahrt aus dem Fahrplan.</p>
+        <div class="sub" id="pickWrap" hidden>
+          <div class="field"><label for="lineSel">Linie</label><span class="sel"><select class="ctl" id="lineSel" disabled><option>Erst Haltestelle wählen</option></select></span></div>
+          <div class="field"><label for="dirSel">Richtung</label><span class="sel"><select class="ctl" id="dirSel" disabled><option>Erst Linie wählen</option></select></span></div>
+          <div class="field"><label for="timeSel" id="timeSelLbl">Abfahrt laut Fahrplan</label><span class="sel"><select class="ctl" id="timeSel" disabled><option>Erst Richtung wählen</option></select></span></div>
+          <p class="note" id="rtNote" hidden></p>
+        </div>
+        <div class="field" id="wagenWrap" hidden>
+          <label for="wagen">Wagennummer <small>optional</small></label>
+          <input class="ctl" id="wagen" maxlength="12" placeholder="z. B. 4742" autocomplete="off">
+          <span class="hint">Steht innen im Wagen, meist an den Wagenenden. Damit findet der Betrieb den Wagen sicher.</span>
+        </div>
+      </div>
+      <div class="sub" id="haltWrap" hidden>
+        <div class="field">
+          <span class="lbl" id="berLbl">U-Bahn oder S-Bahn?</span>
+          <div class="seg" role="radiogroup" aria-labelledby="berLbl">
+            <label><input type="radio" name="bereich" value="U"><span>U-Bahn</span></label>
+            <label><input type="radio" name="bereich" value="S"><span>S-Bahn</span></label>
+          </div>
+          <span class="hint">Danach richtet sich, an wen die Mail geht.</span>
+        </div>
+        <div class="field">
+          <label for="wo">Wo genau? <small>optional</small></label>
+          <input class="ctl" id="wo" placeholder="z. B. Bahnsteig Richtung Wedel, hinterer Aufgang" autocomplete="off">
+        </div>
+      </div>
+      <details class="more" id="manual">
+        <summary>Angaben selbst eintragen oder ändern<svg aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="inner">
+          <div class="field"><label for="stop">Haltestelle</label><input class="ctl" id="stop" placeholder="z. B. Jungfernstieg" autocomplete="off"></div>
+          <div class="sub" id="manualTrip">
+            <div class="row2">
+              <div class="field"><label for="linie">Linie</label><input class="ctl" id="linie" maxlength="8" placeholder="z. B. U1 oder S3" autocomplete="off" autocapitalize="characters"></div>
+              <div class="field"><label for="soll" id="sollLbl">Laut Fahrplan</label><input class="ctl" type="time" id="soll" step="60"></div>
+            </div>
+            <div class="field"><label for="richtung">Richtung <small>optional</small></label><input class="ctl" id="richtung" placeholder="z. B. Ohlstedt" autocomplete="off"></div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="step" aria-labelledby="h4a">
+      <div class="step-head"><span class="num" id="n4" aria-hidden="true">4</span><h2 id="h4a">Prüfen und senden</h2></div>
+      <div class="plate" id="plate" hidden>
+        <svg class="mark" aria-hidden="true"><use href="#i-h"/></svg>
+        <div class="stopname" id="pStop"></div>
+        <div class="trip"><span class="badge" id="pLine"></span><span id="pDir"></span><span class="pill" id="pType"></span></div>
+        <dl class="times" id="pTimes"></dl>
+      </div>
+      <p class="note warn" id="missNote" hidden></p>
+      <p class="note" id="timeNote" hidden></p>
+      <div class="field">
+        <label for="notiz">In eigenen Worten <small>optional</small></label>
+        <textarea class="ctl" id="notiz" rows="2" placeholder="z. B. Ich habe dadurch meinen Anschluss verpasst."></textarea>
+      </div>
+      <div class="field">
+        <span class="lbl">Fotos <small class="hint">optional, bis zu drei</small></span>
+        <div class="photos" id="photos" hidden></div>
+        <div class="actions">
+          <label class="btn" id="camLbl" for="camInput"><svg aria-hidden="true"><use href="#i-camera"/></svg>Foto aufnehmen</label>
+          <label class="btn" id="galLbl" for="galInput"><svg aria-hidden="true"><use href="#i-image"/></svg>Foto auswählen</label>
+        </div>
+        <input class="vh" type="file" id="camInput" accept="image/*" capture="environment" tabindex="-1">
+        <input class="vh" type="file" id="galInput" accept="image/*" multiple tabindex="-1">
+        <span class="hint">Fotografiere den Zustand, nicht andere Fahrgäste. Bilder, auf denen Personen zu erkennen sind, gehören nur in die Mail, wenn es für die Meldung nötig ist.</span>
+      </div>
+      <div class="field" id="nameInlineWrap" hidden>
+        <label for="nameInline">Dein Name</label>
+        <input class="ctl" id="nameInline" autocomplete="name" placeholder="Vor- und Nachname">
+        <span class="hint">Steht als Unterschrift unter der Mail und wird auf diesem Handy gespeichert.</span>
+      </div>
+      <div class="sub" id="mailWrap" hidden>
+        <div class="mailbar">
+          <span class="lbl">Deine Mail</span>
+          <button type="button" class="btn quiet" id="rerollBtn"><svg aria-hidden="true"><use href="#i-refresh"/></svg>Anders formulieren</button>
+        </div>
+        <article class="mail" aria-label="Vorschau der Mail">
+          <dl class="hdr">
+            <dt>An</dt><dd><span id="toAddr"></span><small id="opNote" hidden></small></dd>
+            <dt>Betreff</dt><dd id="subj"></dd>
+          </dl>
+          <div class="body" id="body"></div>
+        </article>
+      </div>
+      <div class="field" id="opMailWrap" hidden>
+        <label for="opMail">Beschwerdeadresse von <span id="opMailName"></span></label>
+        <input class="ctl" id="opMail" type="email" inputmode="email" placeholder="adresse@betreiber.de" autocomplete="off">
+        <span class="hint">Steht meist auf der Website des Betriebs unter Kontakt. Die App merkt sie sich für diesen Betrieb.</span>
+      </div>
+      <div class="actions">
+        <a class="btn primary" id="mailBtn" href="#" role="button"><svg aria-hidden="true"><use href="#i-mail"/></svg>Mail-App öffnen</a>
+        <button type="button" class="btn" id="copyBtn"><svg aria-hidden="true"><use href="#i-copy"/></svg>Text kopieren</button>
+      </div>
+      <button type="button" class="btn quiet" id="logBtn" style="align-self:flex-start">Nur im Verlauf speichern</button>
+      <div class="note good saved" id="savedNote" hidden>
+        <span>Im Verlauf gespeichert.</span>
+        <button type="button" class="btn quiet" id="newBtn">Neue Beschwerde</button>
+      </div>
+    </section>
+
+    <footer class="credits">Fahrplan- und Echtzeitdaten: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>.</footer>
+  </main>
+
+  <!-- ===================== Verlauf ===================== -->
+  <main id="v-verlauf" hidden>
+    <div class="view-head">
+      <h2>Verlauf</h2>
+      <p class="hint" id="histIntro"></p>
+    </div>
+    <div class="stack" id="hist"></div>
+  </main>
+
+  <!-- ===================== Einstellungen ===================== -->
+  <main id="v-einstellungen" hidden>
+    <div class="view-head"><h2>Einstellungen</h2></div>
+    <section class="group first">
+      <div class="field">
+        <label for="name">Dein Name</label>
+        <input class="ctl" id="name" autocomplete="name" placeholder="Vor- und Nachname">
+        <span class="hint">Steht als Unterschrift unter jeder Mail.</span>
+      </div>
+      <div class="field">
+        <span class="lbl" id="tonLbl">Ton der Mail</span>
+        <div class="seg" role="radiogroup" aria-labelledby="tonLbl">
+          <label><input type="radio" name="ton" value="sachlich" checked><span>Sachlich</span></label>
+          <label><input type="radio" name="ton" value="deutlich"><span>Deutlich</span></label>
+        </div>
+      </div>
+    </section>
+    <section class="group">
+      <h3>Empfänger</h3>
+      <label class="switch"><span>Nach Linie wählen<small>U-Bahn geht an die HOCHBAHN, S-Bahn an die S-Bahn Hamburg. Für andere Betriebe wie die AKN trägst du die Adresse einmal ein.</small></span><input type="checkbox" id="autoEmpf" checked></label>
+      <div class="field">
+        <label for="empf">Standard-Empfänger</label>
+        <span class="sel"><select class="ctl" id="empf">
+          <option value="hochbahn">HOCHBAHN, U-Bahn (info@hochbahn.de)</option>
+          <option value="sbahn">S-Bahn Hamburg (s-bahn.hamburg@deutschebahn.com)</option>
+          <option value="hvv">hvv, Verkehrsverbund (info@hvv.de)</option>
+          <option value="custom">Andere Adresse</option>
+        </select></span>
+        <span class="hint">Wird genommen, wenn die Linie keinem Betrieb zugeordnet werden kann.</span>
+      </div>
+      <div class="field" id="customWrap" hidden>
+        <label for="customMail">E-Mail-Adresse</label>
+        <input class="ctl" id="customMail" type="email" inputmode="email" placeholder="adresse@betreiber.de" autocomplete="off">
+      </div>
+      <div class="field" id="opListWrap" hidden>
+        <span class="lbl">Gemerkte Adressen</span>
+        <ul id="opList"></ul>
+      </div>
+    </section>
+    <section class="group">
+      <h3>Standort</h3>
+      <label class="switch"><span>Beim Öffnen automatisch erfassen<small>Gilt, sobald du den Standortzugriff einmal erlaubt hast.</small></span><input type="checkbox" id="autoLoc" checked></label>
+    </section>
+    <section class="group about">
+      <h3 style="color:var(--ink)">Über die App</h3>
+      <p>Dein Standort geht nur an den Fahrplandienst Transitous, um Haltestellen und Abfahrten zu finden. Name, Verlauf und Einstellungen bleiben auf diesem Handy. Fotos speichert die App nicht, sie verlassen das Handy nur als Anhang deiner Mail.</p>
+      <p>Fahrplan- und Echtzeitdaten: <a href="https://transitous.org/sources/" target="_blank" rel="noopener">Transitous und seine Datenquellen</a>. Haltestellensuche auf Basis von <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Schrift: Barlow (SIL Open Font License).</p>
+      <p id="versionLine"></p>
+    </section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="Bereiche">
+  <button type="button" id="tab-melden" aria-current="page"><span class="ic"><svg aria-hidden="true"><use href="#i-report"/></svg></span>Melden</button>
+  <button type="button" id="tab-verlauf"><span class="ic"><svg aria-hidden="true"><use href="#i-list"/></svg></span>Verlauf</button>
+  <button type="button" id="tab-einstellungen"><span class="ic"><svg aria-hidden="true"><use href="#i-sliders"/></svg></span>Einstellungen</button>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-in">
+    <div class="sheet-head"><h2 id="sheetTitle">Sammelbeschwerde</h2><button type="button" class="iconbtn" id="sheetClose" aria-label="Schließen"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+    <article class="mail">
+      <dl class="hdr"><dt>An</dt><dd id="sTo"></dd><dt>Betreff</dt><dd id="sSubj"></dd></dl>
+      <div class="body" id="sBody"></div>
+    </article>
+    <div class="actions">
+      <a class="btn primary" id="sMail" href="#" role="button"><svg aria-hidden="true"><use href="#i-mail"/></svg>Mail-App öffnen</a>
+      <button type="button" class="btn" id="sCopy"><svg aria-hidden="true"><use href="#i-copy"/></svg>Text kopieren</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+const VERSION="__APP_VERSION__";
+const $=id=>document.getElementById(id);
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const cap=(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())?window.Capacitor:null;
+const plug=n=>(cap&&cap.Plugins&&cap.Plugins[n])||null;
+const pad=n=>String(n).padStart(2,"0");
+const hm=d=>pad(d.getHours())+":"+pad(d.getMinutes());
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dShort=d=>d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
+const dLong=d=>d.toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+const dDay=d=>d.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"});
+const mins=v=>`${v} Minute${v===1?"":"n"}`;
+const natSort=(x,y)=>x.localeCompare(y,"de",{numeric:true});
+const noRi=s=>String(s||"").replace(/^Richtung\s+/i,"").trim();
+
+// ---------- Betreiber und ihre Beschwerdeadressen ----------
+const OPS={
+  hochbahn:{name:"HOCHBAHN",mail:"info@hochbahn.de",re:/hochbahn/i,line:/^U\s?\d/i},
+  sbahn:{name:"S-Bahn Hamburg",mail:"s-bahn.hamburg@deutschebahn.com",re:/s-bahn hamburg/i,line:/^S\s?\d/i},
+  hvv:{name:"hvv",mail:"info@hvv.de",re:/a^/,line:null}
+};
+const okMail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+// ---------- Art des Vorfalls ----------
+// cond: Meldungen zu Zustand und Sicherheit, im Zug oder an der Haltestelle
+const COND={ist:"Passiert um",istMail:"Uhrzeit des Vorfalls",plate:"Vorfall",pick:"Deine Fahrt (Abfahrt laut Fahrplan)",showIst:true,cond:true};
+const TYPES={
+  spaet:{kurz:"zu spät gekommen",ist:"Gekommen um",istMail:"Tatsächlich gekommen",plate:"Gekommen",pick:"Abfahrt laut Fahrplan",showIst:true},
+  ausfall:{kurz:"ausgefallen",ist:"An der Haltestelle um",istMail:"",plate:"",pick:"Ausgefallene Abfahrt",showIst:false},
+  frueh:{kurz:"zu früh abgefahren",ist:"Abgefahren um",istMail:"Tatsächliche Abfahrt",plate:"Abgefahren",pick:"Abfahrt laut Fahrplan",showIst:true},
+  belaestigt:{kurz:"Belästigung",...COND},
+  betteln:{kurz:"Betteln",...COND},
+  gestank:{kurz:"Gestank",...COND},
+  dreck:{kurz:"Dreck",...COND}
+};
+const DETAIL={
+  belaestigt:{frage:"Wie wurdest du belästigt?",mail:"Was passiert ist:",items:["verbal belästigt oder beleidigt","bedrängt oder verfolgt","sexuell belästigt","bedroht","angefasst"]},
+  betteln:{frage:"Was ist dir aufgefallen?",mail:"Was mir aufgefallen ist:",items:["Fahrgäste einzeln angesprochen","trotz Ablehnung weiter bedrängt","aggressiv aufgetreten","Weg versperrt"]},
+  gestank:{frage:"Wonach roch es?",mail:"Es roch nach:",items:["Urin","Erbrochenes","Zigarettenrauch","Müll oder Essensreste","Fäkalien","Alkohol"]},
+  dreck:{frage:"Was war verschmutzt?",mail:"Was mir aufgefallen ist:",items:["Müll liegt herum","Sitze verschmutzt","Boden klebrig oder nass","Erbrochenes","Urin","Schmierereien","Mülleimer quillt über","Scherben"]}
+};
+const typeOf=h=>TYPES[h.typ]||TYPES.spaet;
+
+// ---------- Zustand ----------
+const S={
+  name:store.get("mb.name",""),
+  empf:store.get("mb.betreiber","hochbahn"),
+  custom:store.get("mb.custom",""),
+  auto:store.get("mb.autoEmpf",true),
+  ton:store.get("mb.ton","sachlich"),
+  autoLoc:store.get("mb.autoLoc",true),
+  opMails:store.get("mb.opMails",{})
+};
+if(!OPS[S.empf]&&S.empf!=="custom")S.empf="hochbahn";
+let incidents=store.get("mb.hist",[]);
+let pos=null, when=new Date(), whenManual=false;
+let stops=[], curStop=null, deps=[], timeList=[], timeManual=false, dep=null, loadSeq=0;
+let fromSel={linie:false,ri:false,soll:false};
+let variant=Array.from({length:8},Math.random);
+let detSel=new Set(), detFor="", bereichManual=false;
+let photos=[];
+let savedKey="", askName=!S.name.trim(), view="melden", hiddenAt=0;
+
+const radio=n=>{const r=document.querySelector(`input[name="${n}"]:checked`);return r?r.value:""};
+const typ=()=>radio("typ")||"spaet";
+const isCond=()=>!!TYPES[typ()].cond;
+const ort=()=>radio("ort")||"zug";
+// Fahrplan-Vorfälle und alles, was im Zug passiert, brauchen eine Linie.
+// An der Haltestelle reicht die Angabe U-Bahn oder S-Bahn.
+const needsLine=()=>!isCond()||ort()==="zug";
+const bereich=()=>radio("bereich");
+// Die beobachtete Uhrzeit zählt nur, wenn sie zur Vorfallart passt:
+// "zu früh" heißt vor der Fahrplanzeit, "zu spät" danach.
+function effIst(){
+  const T=typ(),ist=$("ist").value,soll=$("soll").value;
+  if(!TYPES[T].showIst||!ist)return "";
+  if(soll&&T==="frueh"&&ist>=soll)return "";
+  if(soll&&T==="spaet"&&ist<=soll)return "";
+  return ist;
+}
+const line=()=>needsLine()?$("linie").value.trim().toUpperCase():"";
+const bcls=l=>"badge"+(/^S/i.test(l||"")?" s":"");
+
+// ---------- Kleine Helfer für die Oberfläche ----------
+function el(tag,attrs,...kids){
+  const e=document.createElement(tag);
+  if(attrs)for(const k in attrs){
+    if(k==="class")e.className=attrs[k];
+    else if(k==="text")e.textContent=attrs[k];
+    else if(k.startsWith("on"))e[k]=attrs[k];
+    else e.setAttribute(k,attrs[k]);
+  }
+  kids.forEach(c=>{if(c!==null&&c!==undefined)e.append(c)});
+  return e;
+}
+function icon(id){
+  const NS="http://www.w3.org/2000/svg";
+  const s=document.createElementNS(NS,"svg");s.setAttribute("aria-hidden","true");
+  const u=document.createElementNS(NS,"use");u.setAttribute("href","#"+id);s.append(u);return s;
+}
+let toastT;
+function toast(msg,action,fn){
+  const t=$("toast");t.textContent="";t.append(msg);
+  if(action)t.append(el("button",{type:"button",text:action,onclick:()=>{t.hidden=true;fn()}}));
+  t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},action?6000:2400);
+}
+function setStatus(state,txt){$("gpsStatus").dataset.state=state;$("gpsText").textContent=txt}
+function fillSelect(sel,items,placeholder){
+  sel.innerHTML="";
+  sel.append(new Option(placeholder,""));
+  items.forEach(([v,t])=>sel.append(new Option(t,v)));
+  sel.disabled=!items.length;
+}
+function show(v){
+  view=v;
+  ["melden","verlauf","einstellungen"].forEach(k=>{
+    $("v-"+k).hidden=k!==v;
+    if(k===v)$("tab-"+k).setAttribute("aria-current","page");else $("tab-"+k).removeAttribute("aria-current");
+  });
+  if(v==="verlauf")renderHist();
+  if(v==="melden")render();
+  window.scrollTo(0,0);
+}
+
+// ---------- Zeitpunkt ----------
+function setWhen(d,manual){
+  when=d;whenManual=!!manual;
+  $("datum").value=ymd(d);$("datum").max=ymd(new Date());$("ist").value=hm(d);
+  $("nowBtn").hidden=!whenManual;
+}
+let reloadT;
+function readWhen(){
+  const dv=$("datum").value,tv=$("ist").value;if(!dv||!tv)return;
+  const d=new Date(`${dv}T${tv}:00`);if(isNaN(d))return;
+  when=d;whenManual=true;$("nowBtn").hidden=false;
+  render();
+  clearTimeout(reloadT);reloadT=setTimeout(()=>{if(curStop)onStop(true)},600);
+}
+
+// ---------- Transitous: Haltestellen, Linien, Abfahrten ----------
+const TAPI="https://api.transitous.org/api";
+async function tget(path,params){
+  const r=await fetch(TAPI+path+"?"+new URLSearchParams(params),{headers:{"Accept":"application/json"}});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return r.json();
+}
+const distM=(e,lat,lon)=>Math.hypot((e.lat-lat)*111320,(e.lon-lon)*111320*Math.cos(lat*Math.PI/180));
+const RAIL=["SUBWAY","SUBURBAN","METRO"];
+const isRail=x=>!Array.isArray(x.modes)||x.modes.some(m=>RAIL.includes(m));
+
+async function nearbyStops(lat,lon){
+  const m=await tget("/v1/reverse-geocode",{place:`${lat},${lon}`,type:"STOP",numResults:20});
+  const by=new Map();
+  (m||[]).forEach(x=>{
+    if(x.type&&x.type!=="STOP")return;
+    if(!isRail(x))return;
+    const d=Math.round(distM(x,lat,lon));if(d>800)return;
+    const o=by.get(x.name)||{name:x.name,ids:[],m:d};
+    o.ids.push(x.id);o.m=Math.min(o.m,d);by.set(x.name,o);
+  });
+  return [...by.values()].sort((x,y)=>x.m-y.m).slice(0,8).map(o=>({...o,label:`${o.name} (${o.m} m)`}));
+}
+async function searchStops(text){
+  const p={text,type:"STOP",language:"de",numResults:15};
+  const near=pos||store.get("mb.lastPos",null);
+  if(near)p.place=`${near.lat},${near.lon}`;
+  const m=await tget("/v1/geocode",p);
+  const by=new Map();
+  (m||[]).forEach(x=>{
+    if(x.type&&x.type!=="STOP")return;
+    if(!isRail(x))return;
+    const a=(x.areas||[]).find(a=>a.default);const area=a?a.name:"";
+    const k=x.name+"|"+area;
+    const o=by.get(k)||{name:x.name,ids:[],label:x.name+(area&&!x.name.includes(area)?", "+area:"")};
+    o.ids.push(x.id);by.set(k,o);
+  });
+  return [...by.values()].slice(0,10);
+}
+async function stopDepartures(stop){
+  // Abfahrten rund um den Zeitpunkt des Vorfalls: 60 Minuten davor bis 40 Minuten danach
+  const ref=when.getTime(), from=new Date(ref-60*60000);
+  const seen=new Map();
+  for(const id of stop.ids.slice(0,2)){
+    const r=await tget("/v6/stoptimes",{stopId:id,time:from.toISOString().replace(/\.\d{3}Z$/,"Z"),n:200,window:6000,mode:"SUBWAY,SUBURBAN",radius:250,withAlerts:"false"});
+    (r.stopTimes||[]).forEach(st=>{
+      const k=st.tripId+"|"+(st.place&&st.place.scheduledDeparture);
+      if(st.place&&st.place.scheduledDeparture&&!seen.has(k))seen.set(k,st);
+    });
+  }
+  const lo=ref-60*60000,hi=ref+40*60000;
+  return [...seen.values()].filter(st=>{const t=new Date(st.place.scheduledDeparture).getTime();return t>=lo&&t<=hi});
+}
+const lineOf=st=>(st.routeShortName||st.displayName||"").trim();
+const dirOf=st=>(st.headsign||(st.tripTo&&st.tripTo.name)||"").trim();
+const schOf=x=>new Date(x.place.scheduledDeparture).getTime();
+const rtOf=x=>(x.realTime&&x.place.departure)?new Date(x.place.departure).getTime():null;
+const isCancelled=x=>!!(x.cancelled||x.tripCancelled||(x.place&&x.place.cancelled));
+
+function recentStops(){return store.get("mb.stops",[])}
+function setStops(list,groupLabel){
+  const rec=recentStops().filter(r=>!list.some(s=>s.name===r.name)).map(r=>({name:r.name,ids:r.ids,label:r.name}));
+  stops=[...list,...rec];
+  const sel=$("stopSel");sel.innerHTML="";
+  sel.append(new Option("Haltestelle wählen",""));
+  const add=(label,items)=>{
+    if(!items.length)return;
+    const g=document.createElement("optgroup");g.label=label;
+    items.forEach(s=>g.append(new Option(s.label||s.name,String(stops.indexOf(s)))));
+    sel.append(g);
+  };
+  add(groupLabel,list);add("Zuletzt genutzt",rec);
+  $("stopField").hidden=!stops.length;
+}
+function openManual(){$("manual").open=true}
+function clearSel(...keys){
+  const map={linie:"linie",ri:"richtung",soll:"soll"};
+  keys.forEach(k=>{if(fromSel[k]){$(map[k]).value="";fromSel[k]=false}});
+}
+function resetBelow(level){
+  if(level==="stop"){fillSelect($("lineSel"),[],"Erst Haltestelle wählen");deps=[];clearSel("linie")}
+  if(level==="stop"||level==="line"){fillSelect($("dirSel"),[],"Erst Linie wählen");clearSel("ri")}
+  fillSelect($("timeSel"),[],"Erst Richtung wählen");clearSel("soll");
+  timeList=[];timeManual=false;dep=null;$("rtNote").hidden=true;
+}
+
+async function showNearby(){
+  setStatus("load","Suche Haltestellen in der Nähe …");
+  let list;
+  try{list=await nearbyStops(pos.lat,pos.lon)}
+  catch(e){setStatus("warn","Die Fahrplandaten sind gerade nicht erreichbar. Trag Haltestelle und Linie in Schritt 3 selbst ein.");openManual();return}
+  if(!list.length){setStops([],"In der Nähe");setStatus("warn","Im Umkreis von 800 m liegt keine U- oder S-Bahn-Haltestelle. Such die Haltestelle über ihren Namen.");return}
+  setStops(list,"In der Nähe");
+  setStatus("ok",`Standort erfasst, auf ${pos.acc} m genau.`);
+  $("stopSel").value="0";
+  await onStop();
+}
+async function onStop(keep){
+  keep=keep===true;
+  if(!keep){bereichManual=false;$("wo").value=""}
+  const prev=keep?{l:$("lineSel").value,d:$("dirSel").value}:null;
+  const st=$("stopSel").value===""?null:stops[+$("stopSel").value];
+  resetBelow("stop");
+  curStop=st||null;
+  if(!st){$("pickWrap").hidden=true;$("s3Empty").hidden=false;render();return}
+  $("stop").value=st.name;
+  $("pickWrap").hidden=false;$("s3Empty").hidden=true;
+  fillSelect($("lineSel"),[],"Lade Abfahrten …");
+  render();
+  const seq=++loadSeq;let list;
+  try{list=await stopDepartures(st)}
+  catch(e){
+    if(seq!==loadSeq)return;
+    fillSelect($("lineSel"),[],"Abfahrten nicht abrufbar");
+    showNote("warn","Die Abfahrten lassen sich gerade nicht laden. Trag Linie und Fahrplanzeit unten selbst ein.");
+    openManual();return;
+  }
+  if(seq!==loadSeq)return;
+  deps=list;
+  const lines=[...new Set(deps.map(lineOf).filter(Boolean))].sort(natSort);
+  autoBereich(lines);
+  if(!lines.length){
+    fillSelect($("lineSel"),[],"Keine Abfahrten gefunden");
+    showNote("warn",`Für ${dDay(when)} um ${hm(when)} Uhr stehen an dieser Haltestelle keine U- oder S-Bahn-Abfahrten im Fahrplan. Prüf Datum und Uhrzeit oder trag die Angaben unten selbst ein.`);
+    if(needsLine())openManual();
+    render();return;
+  }
+  fillSelect($("lineSel"),lines.map(l=>[l,l]),"Linie wählen");
+  const last=incidents.find(h=>h.stop===st.name&&lines.includes(h.linie));
+  const pre=(prev&&lines.includes(prev.l)&&prev.l)||(last&&last.linie)||(lines.length===1?lines[0]:"");
+  if(pre){$("lineSel").value=pre;onLine(prev?prev.d:"")}else render();
+}
+// An der Haltestelle: U-Bahn oder S-Bahn vorbelegen, wenn dort nur eins von beiden fährt
+function autoBereich(lines){
+  if(bereichManual)return;
+  const u=lines.some(l=>/^U/i.test(l)),s=lines.some(l=>/^S/i.test(l));
+  const v=u&&!s?"U":s&&!u?"S":"";
+  document.querySelectorAll('input[name="bereich"]').forEach(r=>{r.checked=r.value===v});
+}
+function onLine(preDir){
+  if(typeof preDir!=="string")preDir="";
+  resetBelow("line");
+  const l=$("lineSel").value;
+  if(!l){render();return}
+  $("linie").value=l;fromSel.linie=true;
+  const dirs=[...new Set(deps.filter(d=>lineOf(d)===l).map(dirOf).filter(Boolean))].sort(natSort);
+  fillSelect($("dirSel"),dirs.map(d=>[d,d]),"Richtung wählen");
+  const last=incidents.find(h=>h.linie===l.toUpperCase()&&h.stop===$("stop").value.trim()&&h.ri&&dirs.includes(noRi(h.ri)));
+  const pre=(preDir&&dirs.includes(preDir)&&preDir)||(last&&noRi(last.ri))||(dirs.length===1?dirs[0]:"");
+  if(pre){$("dirSel").value=pre;onDir()}else render();
+}
+function pickIndex(list){
+  // Welche Fahrt ist wahrscheinlich gemeint? Echtzeit schlägt Fahrplan.
+  if(!list.length)return -1;
+  const T=typ(),w=when.getTime(),near=10*60000;
+  const closest=f=>{let bi=-1,bd=Infinity;list.forEach((x,i)=>{const t=f(x);if(t===null)return;const d=Math.abs(t-w);if(d<bd){bd=d;bi=i}});return bi};
+  const lastBefore=lim=>{let bi=-1;list.forEach((x,i)=>{if(schOf(x)<=lim)bi=i});return bi};
+  let i=-1;
+  if(T==="ausfall"){
+    list.forEach((x,k)=>{if(isCancelled(x)&&schOf(x)<=w+60000)i=k});
+    if(i<0)i=lastBefore(w-60000);
+  }else if(T==="spaet"){
+    let bd=near;list.forEach((x,k)=>{const r=rtOf(x);if(r!==null&&r>schOf(x)){const d=Math.abs(r-w);if(d<=bd){bd=d;i=k}}});
+    if(i<0)i=lastBefore(w-60000);
+  }else if(T==="frueh"){
+    let bd=near;list.forEach((x,k)=>{const r=rtOf(x);if(r!==null&&r<schOf(x)){const d=Math.abs(r-w);if(d<=bd){bd=d;i=k}}});
+    if(i<0)i=closest(schOf);
+  }else{
+    i=closest(x=>{const r=rtOf(x);return r===null?schOf(x):r});
+  }
+  if(i<0)i=closest(schOf);
+  return i;
+}
+function onDir(){
+  fillSelect($("timeSel"),[],"Erst Richtung wählen");clearSel("soll");
+  timeList=[];timeManual=false;dep=null;$("rtNote").hidden=true;
+  const l=$("lineSel").value,d=$("dirSel").value;
+  if(!d){clearSel("ri");render();return}
+  $("richtung").value=d;fromSel.ri=true;
+  timeList=deps.filter(x=>lineOf(x)===l&&dirOf(x)===d).sort((x,y)=>schOf(x)-schOf(y));
+  const items=timeList.map((x,i)=>{
+    const sch=schOf(x),rt=rtOf(x);
+    let t=hm(new Date(sch))+" Uhr";
+    if(isCancelled(x))t+=", fällt aus";
+    else if(rt!==null){
+      const df=Math.round((rt-sch)/60000);
+      t+=df<0?`, Echtzeit ${hm(new Date(rt))} (${-df} Min. früher)`:df>0?`, Echtzeit ${hm(new Date(rt))} (${df} Min. später)`:", pünktlich";
+    }
+    return [String(i),t];
+  });
+  fillSelect($("timeSel"),items,"Abfahrt wählen");
+  const pre=pickIndex(timeList);
+  if(pre>=0){$("timeSel").value=String(pre);onTime()}else render();
+}
+function showNote(kind,txt){const n=$("rtNote");n.hidden=false;n.className="note"+(kind?" "+kind:"");n.textContent=txt}
+function onTime(){
+  const x=$("timeSel").value===""?null:timeList[+$("timeSel").value];
+  dep=null;$("rtNote").hidden=true;
+  if(!x){clearSel("soll");render();return}
+  const rt=rtOf(x);
+  dep={line:lineOf(x),sched:new Date(schOf(x)),rt:rt===null?null:new Date(rt),cancelled:isCancelled(x),agency:(x.agencyName||"").trim()};
+  $("soll").value=hm(dep.sched);fromSel.soll=true;
+  const T=typ(),df=dep.rt?Math.round((dep.rt-dep.sched)/60000):null;
+  if(!whenManual&&df!==null&&((T==="frueh"&&df<0)||(T==="spaet"&&df>0)))setWhen(dep.rt,false);
+  const beleg=" Das steht als Beleg in der Mail.";
+  if(TYPES[T].cond){
+    showNote("",`Fahrt zugeordnet: ${dep.line}, planmäßig ${hm(dep.sched)} Uhr ab ${$("stop").value.trim()||"dieser Haltestelle"}. So kann der Betrieb den Zug ermitteln.`);
+  }else if(T==="ausfall"){
+    if(dep.cancelled)showNote("good","Laut Echtzeitdaten ist diese Fahrt als ausgefallen gemeldet."+beleg);
+    else showNote("",dep.rt?"Laut Echtzeitdaten ist diese Fahrt nicht als ausgefallen gemeldet. Deine Beobachtung zählt trotzdem.":"Für diese Fahrt gibt es keine Echtzeitdaten. Die Mail stützt sich auf deine Beobachtung.");
+  }else if(df===null){
+    showNote("","Für diese Fahrt gibt es keine Echtzeitdaten. Die Mail stützt sich auf deine Beobachtung.");
+  }else if(T==="frueh"){
+    if(df<0)showNote("good",`Laut Echtzeitdaten ist dieser Zug um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} zu früh.`+beleg);
+    else showNote("",df>0?`Laut Echtzeitdaten war dieser Zug ${mins(df)} verspätet (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:"Laut Echtzeitdaten war dieser Zug pünktlich. Deine Beobachtung zählt trotzdem.");
+  }else{
+    if(df>0)showNote("good",`Laut Echtzeitdaten kam dieser Zug um ${hm(dep.rt)} Uhr, ${mins(df)} zu spät.`+beleg);
+    else showNote("",df<0?`Laut Echtzeitdaten ist dieser Zug ${mins(-df)} zu früh abgefahren (${hm(dep.rt)} Uhr). Deine Beobachtung zählt trotzdem.`:"Laut Echtzeitdaten war dieser Zug pünktlich. Deine Beobachtung zählt trotzdem.");
+  }
+  render();
+}
+
+// ---------- Standort ----------
+async function onPosition(p){
+  $("gpsBtn").disabled=false;
+  pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:Math.max(1,Math.round(p.coords.accuracy||0))};
+  store.set("mb.lastPos",{lat:+pos.lat.toFixed(3),lon:+pos.lon.toFixed(3)});
+  $("gpsBtn").classList.remove("primary");$("gpsBtnTxt").textContent="Standort aktualisieren";
+  await showNearby();
+}
+function onPosError(err){
+  $("gpsBtn").disabled=false;
+  setStatus("warn",err&&err.code===1
+    ?"Der Standortzugriff ist nicht erlaubt. Such die Haltestelle über ihren Namen oder erlaube den Zugriff in den Android-Einstellungen."
+    :"Der Standort ließ sich nicht ermitteln. Versuch es noch einmal oder such die Haltestelle über ihren Namen.");
+}
+async function locate(){
+  if(!whenManual)setWhen(new Date(),false);
+  setStatus("load","Standort wird ermittelt …");$("gpsBtn").disabled=true;
+  const G=plug("Geolocation");
+  if(G){
+    try{
+      const perm=await G.requestPermissions();
+      if(perm&&perm.location==="denied")throw {code:1};
+      await onPosition(await G.getCurrentPosition({enableHighAccuracy:true,timeout:15000,maximumAge:0}));
+    }catch(e){onPosError(e&&e.code===1?e:{code:/denied|permission/i.test(String(e&&e.message))?1:2})}
+    return;
+  }
+  if(!("geolocation" in navigator)){onPosError({code:2});return}
+  navigator.geolocation.getCurrentPosition(onPosition,onPosError,{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+async function autoLocate(){
+  // Nur wenn der Zugriff schon erlaubt ist: keine Rückfrage beim Start
+  if(!S.autoLoc)return;
+  try{
+    const G=plug("Geolocation");
+    if(G){const p=await G.checkPermissions();if(p&&p.location==="granted")locate();return}
+    if(navigator.permissions){const s=await navigator.permissions.query({name:"geolocation"});if(s.state==="granted")locate()}
+  }catch(e){}
+}
+
+// ---------- Empfänger ----------
+function recipient(){
+  const l=line(),b=needsLine()?"":bereich();
+  const def=S.empf==="custom"?{mail:S.custom.trim()}:OPS[S.empf];
+  if(!S.auto)return{mail:def.mail,note:"",warn:false};
+  let hit=null;
+  if(l){for(const k in OPS)if(OPS[k].line&&OPS[k].line.test(l))hit=OPS[k]}
+  else if(b==="U")hit=OPS.hochbahn;
+  else if(b==="S")hit=OPS.sbahn;
+  if(hit)return{mail:hit.mail,note:l?`Die ${l} wird von der ${hit.name} betrieben.`:`${b}-Bahn-Haltestellen betreut die ${hit.name}.`,warn:false};
+  const ag=(l&&dep&&dep.line.toUpperCase()===l&&hm(dep.sched)===$("soll").value)?dep.agency:"";
+  if(ag){
+    for(const k in OPS)if(OPS[k].re.test(ag))hit=OPS[k];
+    if(hit)return{mail:hit.mail,note:`Betreiber laut Fahrplan: ${ag}.`,warn:false};
+    if(S.opMails[ag])return{mail:S.opMails[ag],note:`Betreiber laut Fahrplan: ${ag}. Adresse von dir hinterlegt.`,warn:false};
+    return{mail:def.mail,note:`Betreiber laut Fahrplan: ${ag}. Für diesen Betrieb ist keine Adresse hinterlegt, die Mail ginge an deinen Standard-Empfänger. Trag die richtige Adresse unter der Vorschau ein.`,warn:true,ask:ag};
+  }
+  return{mail:def.mail,note:"",warn:false};
+}
+
+// ---------- Mailtext ----------
+// Vorfälle im Zug gehören zur Linie, Vorfälle an der Haltestelle zur Haltestelle
+const gkey=h=>h.linie||"@"+(h.stop||"");
+function currentIncident(){
+  const need=needsLine();
+  return{linie:line(),typ:typ(),ort:isCond()?ort():"zug",bereich:need?"":bereich(),ts:when.getTime(),ist:effIst(),
+    soll:need?$("soll").value:"",stop:$("stop").value.trim(),ri:need?noRi($("richtung").value):"",to:recipient().mail,fotos:photos.length};
+}
+const keyOf=h=>[gkey(h),h.typ||"spaet",ymd(new Date(h.ts)),h.soll||h.ist||""].join("|");
+function incLine(h){
+  const d=new Date(h.ts);
+  return `- ${dShort(d)}, ${h.ist||h.soll||hm(d)} Uhr: ${typeOf(h).kurz}${h.soll&&h.ist&&!typeOf(h).cond?` (Fahrplan ${h.soll} Uhr)`:""}${h.stop?`, Haltestelle ${h.stop}`:""}`;
+}
+function build(){
+  const T=typ(),t=TYPES[T],cond=!!t.cond,need=needsLine();
+  const l=need?(line()||"[Linie]"):"";
+  const stop=$("stop").value.trim();
+  const ist=effIst(), soll=need?$("soll").value:"";
+  const ri=need?noRi($("richtung").value):"";
+  const name=S.name.trim();
+  const wagen=(cond&&need)?$("wagen").value.trim():"";
+  const woGenau=need?"":$("wo").value.trim();
+  const b=bereich();
+  let diff="";
+  if(ist&&soll){const [a,c]=ist.split(":").map(Number),[e,f]=soll.split(":").map(Number);const m=(e*60+f)-(a*60+c);
+    if(T==="frueh"&&m>0)diff=` – also ${mins(m)} zu früh`;
+    if(T==="spaet"&&m<0)diff=` – also ${mins(-m)} zu spät`;}
+  const d=dShort(when), wd=dLong(when);
+  const cur=currentIncident(),curKey=keyOf(cur);
+  const prev=incidents.filter(h=>gkey(h)===gkey(cur)&&keyOf(h)!==curKey).slice(0,10);
+  const an=stop?` an der Haltestelle ${stop}`:"";
+  const wohin=ri?` (Richtung ${ri})`:"";
+  const um=soll?` um ${soll} Uhr`:"";
+  // Ortsangabe für Meldungen zu Zustand und Sicherheit
+  const sName=stop||"[Haltestelle]";
+  const ortTxt=need?`im Zug der Linie ${l}${wohin}`:`an der ${b?b+"-Bahn-":""}Haltestelle ${sName}`;
+  const ortKurz=need?`in der ${l}`:`an der Haltestelle ${sName}`;
+  const P=(slot,arr)=>arr[Math.floor(variant[slot]*arr.length)%arr.length];
+  const sauberS=["Ich bitte Sie, die Reinigung zu veranlassen und mir kurz mitzuteilen, wie Sie solche Zustände künftig vermeiden.","Könnten Sie bitte eine Reinigung veranlassen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte lassen Sie dort reinigen und geben Sie mir eine kurze Rückmeldung."];
+  const sauberD=["Ich erwarte, dass Sie umgehend reinigen lassen und die Reinigungsintervalle überprüfen. Bitte teilen Sie mir mit, was Sie unternehmen.","Bitte sorgen Sie dafür, dass gereinigt wird und sich das nicht wiederholt, und geben Sie mir Rückmeldung.","Ich bitte Sie nachdrücklich, für saubere Züge und Haltestellen zu sorgen, und möchte über Ihre Maßnahmen informiert werden."];
+
+  const TX={
+    frueh:{
+      subject:[`Beschwerde: ${l} zu früh abgefahren am ${d}`,`${l}: verfrühte Abfahrt am ${d}${stop?` (${stop})`:""}`,`Zu frühe Abfahrt der ${l} am ${d}`,prev.length?`Erneut zu frühe Abfahrt der ${l} (${d})`:`Zug der Linie ${l} vor Fahrplanzeit abgefahren (${d})`],
+      intro:[`hiermit möchte ich mich darüber beschweren, dass der Zug der Linie ${l}${wohin} am ${wd}${an} vor der planmäßigen Abfahrtszeit abgefahren ist.`,`ich wende mich an Sie, weil der Zug der Linie ${l}${wohin} am ${wd}${an} zu früh losgefahren ist.`,`am ${wd} ist mir der Zug der Linie ${l}${wohin}${an} vor der Nase weggefahren, und zwar vor der im Fahrplan angegebenen Zeit.`,`leider muss ich Ihnen mitteilen, dass der Zug der Linie ${l}${wohin} am ${wd}${an} früher abgefahren ist, als es der Fahrplan vorsieht.`],
+      folge:["Eine zu frühe Abfahrt ist für Fahrgäste besonders ärgerlich, weil man auch bei pünktlichem Erscheinen am Bahnsteig den Zug verpasst.","Gerade eine verfrühte Abfahrt trifft diejenigen, die sich auf den Fahrplan verlassen und rechtzeitig am Bahnsteig sind.","Mit Verspätungen kann man rechnen, mit einer zu frühen Abfahrt nicht. Wer pünktlich da ist, steht dann trotzdem ohne Zug da."],
+      bitteS:["Ich bitte Sie, den Vorfall zu prüfen und mir kurz mitzuteilen, wie Sie die Einhaltung der Abfahrtszeiten sicherstellen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte prüfen Sie den Vorfall. Eine kurze Antwort wäre nett."],
+      bitteD:["Ich erwarte, dass Sie dem nachgehen und die Einhaltung der Abfahrtszeiten sicherstellen. Bitte teilen Sie mir mit, welche konkreten Maßnahmen Sie ergreifen.","Ich bitte Sie nachdrücklich, das Problem abzustellen. Über die Ergebnisse Ihrer Prüfung möchte ich informiert werden.","Bitte sorgen Sie dafür, dass Züge nicht mehr vor der Fahrplanzeit abfahren, und informieren Sie mich, was Sie unternommen haben."]
+    },
+    spaet:{
+      subject:[`Beschwerde: Verspätung der ${l} am ${d}`,`${l}: Zug deutlich zu spät am ${d}${stop?` (${stop})`:""}`,`Verspäteter Zug der Linie ${l} am ${d}`,prev.length?`Erneut Verspätung auf der ${l} (${d})`:`Zug der Linie ${l} kam zu spät (${d})`],
+      intro:[`hiermit möchte ich mich darüber beschweren, dass der Zug der Linie ${l}${wohin} am ${wd}${an} deutlich später als im Fahrplan angegeben gekommen ist.`,`ich wende mich an Sie, weil der Zug der Linie ${l}${wohin} am ${wd}${an} erheblich verspätet war.`,`am ${wd} musste ich${an} lange auf den Zug der Linie ${l}${wohin} warten, der viel später als planmäßig kam.`,`leider muss ich Ihnen eine Verspätung melden: Der Zug der Linie ${l}${wohin} kam am ${wd}${an} nicht zur Fahrplanzeit.`],
+      folge:["Durch die Verspätung habe ich unnötig Zeit verloren und konnte mich nicht auf den Fahrplan verlassen.","Wer auf Anschlüsse oder Termine angewiesen ist, kann mit solchen Verspätungen nicht planen.","Durch die Verspätung war mein Anschluss gefährdet, und verlässliche Informationen am Bahnsteig gab es nicht."],
+      bitteS:["Ich bitte Sie, die Ursache zu prüfen und mir kurz mitzuteilen, wie Sie die Pünktlichkeit auf dieser Linie verbessern wollen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung würde ich mich freuen.","Bitte prüfen Sie, woran es lag, und geben Sie mir eine kurze Rückmeldung."],
+      bitteD:["Ich erwarte, dass Sie die Ursache klären und für einen verlässlichen Betrieb auf dieser Linie sorgen. Bitte teilen Sie mir mit, was Sie konkret unternehmen.","Ich bitte Sie nachdrücklich, die Pünktlichkeit auf dieser Linie zu verbessern, und möchte über Ihre Maßnahmen informiert werden.","Bitte sorgen Sie dafür, dass sich solche Verspätungen nicht wiederholen, und informieren Sie mich über das Ergebnis Ihrer Prüfung."]
+    },
+    ausfall:{
+      subject:[`Beschwerde: Ausfall einer Fahrt der ${l} am ${d}`,`${l}: Zug${um} ist ausgefallen (${d})`,`Ausgefallene Fahrt der ${l} am ${d}${stop?` (${stop})`:""}`,prev.length?`Erneut Fahrtausfall auf der ${l} (${d})`:`Zug der Linie ${l} kam nicht (${d})`],
+      intro:[`hiermit möchte ich mich darüber beschweren, dass die Fahrt der Linie ${l}${wohin}${um} am ${wd}${an} ausgefallen ist.`,`ich wende mich an Sie, weil der Zug der Linie ${l}${wohin}${um} am ${wd}${an} einfach nicht gekommen ist.`,`am ${wd} habe ich${an} vergeblich auf den Zug der Linie ${l}${wohin}${um} gewartet. Die Fahrt ist ausgefallen.`,`leider muss ich Ihnen einen Fahrtausfall melden: Der Zug der Linie ${l}${wohin}${um} ist am ${wd}${an} nicht gefahren.`],
+      folge:["Ohne den Zug musste ich lange auf die nächste Fahrt warten und bin entsprechend spät angekommen.","Ein Ausfall ohne rechtzeitige Information lässt Fahrgäste ratlos am Bahnsteig stehen.","Wer sich auf den Fahrplan verlässt, hat bei einem Ausfall keine Chance, rechtzeitig umzuplanen."],
+      bitteS:["Ich bitte Sie, mir mitzuteilen, warum die Fahrt ausgefallen ist und wie Sie Ausfälle künftig vermeiden oder früher ankündigen wollen.","Könnten Sie dem bitte nachgehen? Über eine kurze Rückmeldung zum Grund des Ausfalls würde ich mich freuen.","Bitte prüfen Sie den Ausfall und geben Sie mir eine kurze Rückmeldung."],
+      bitteD:["Ich erwarte eine Erklärung, warum die Fahrt ausgefallen ist, und Auskunft darüber, wie Sie solche Ausfälle künftig verhindern.","Ich bitte Sie nachdrücklich, für einen verlässlichen Betrieb zu sorgen, und möchte über die Gründe des Ausfalls informiert werden.","Bitte stellen Sie sicher, dass Fahrten nicht einfach ausfallen, und teilen Sie mir mit, was Sie unternehmen."]
+    },
+    belaestigt:{
+      subject:[`Meldung: Belästigung ${ortKurz} am ${d}`,`Belästigung ${ortKurz}, ${d}`,`Vorfall ${ortKurz} am ${d}: Belästigung`],
+      intro:[`ich möchte Ihnen einen Vorfall melden: Am ${wd} wurde ich ${ortTxt} belästigt.`,`am ${wd} bin ich ${ortTxt} belästigt worden und möchte Ihnen das mitteilen.`,`ich wende mich an Sie, weil ich am ${wd} ${ortTxt} belästigt wurde.`],
+      folge:["Ich habe mich in dieser Situation nicht sicher gefühlt.","Als Fahrgast möchte ich mich in Ihren Zügen und an Ihren Haltestellen sicher fühlen können. Das war hier nicht der Fall.","Solche Vorfälle führen dazu, dass man Bahnfahrten meidet, besonders abends."],
+      bitteS:["Ich bitte Sie, vorhandene Videoaufzeichnungen aus diesem Zeitraum zu sichern und mir mitzuteilen, wie Sie mit dem Vorfall umgehen.","Bitte sichern Sie die Videoaufzeichnungen aus diesem Zeitraum und prüfen Sie, ob dort mehr Sicherheitspersonal eingesetzt werden kann. Über eine Rückmeldung würde ich mich freuen."],
+      bitteD:["Ich erwarte, dass Sie die Videoaufzeichnungen aus diesem Zeitraum sichern und für mehr Sicherheitspersonal sorgen. Bitte teilen Sie mir mit, was Sie unternehmen.","Bitte sichern Sie umgehend die Videoaufzeichnungen und teilen Sie mir mit, welche Maßnahmen Sie für die Sicherheit Ihrer Fahrgäste ergreifen."]
+    },
+    betteln:{
+      subject:[`Beschwerde: Betteln ${ortKurz} am ${d}`,`Betteln ${ortKurz}, ${d}`,prev.length?`Erneut Betteln ${ortKurz} (${d})`:`Aufdringliches Betteln ${ortKurz} (${d})`],
+      intro:[`ich möchte Ihnen mitteilen, dass am ${wd} ${ortTxt} gebettelt wurde.`,`am ${wd} wurden Fahrgäste ${ortTxt} angebettelt.`,`ich wende mich an Sie, weil am ${wd} ${ortTxt} gebettelt wurde.`],
+      folge:["Viele Fahrgäste empfinden das als unangenehm, vor allem wenn man der Situation nicht ausweichen kann.","Ich fühle mich dadurch auf meinen Fahrten gestört."],
+      bitteS:["Ich bitte Sie, dort häufiger Sicherheits- oder Servicepersonal einzusetzen, und freue mich über eine kurze Rückmeldung.","Könnten Sie prüfen, ob dort öfter kontrolliert werden kann? Über eine kurze Antwort würde ich mich freuen."],
+      bitteD:["Ich erwarte, dass Sie Ihre Hausordnung durchsetzen und dort häufiger Personal einsetzen. Bitte teilen Sie mir mit, was Sie unternehmen.","Bitte sorgen Sie für regelmäßige Kontrollen und informieren Sie mich über Ihre Maßnahmen."]
+    },
+    gestank:{
+      subject:[`Beschwerde: Gestank ${ortKurz} am ${d}`,`Starker Geruch ${ortKurz}, ${d}`,prev.length?`Erneut Gestank ${ortKurz} (${d})`:`Unzumutbarer Geruch ${ortKurz} (${d})`],
+      intro:[`ich möchte mich über starken Gestank ${ortTxt} am ${wd} beschweren.`,`am ${wd} hat es ${ortTxt} so stark gestunken, dass der Aufenthalt kaum auszuhalten war.`,`leider muss ich Ihnen mitteilen, dass es ${ortTxt} am ${wd} stark gestunken hat.`],
+      folge:["Für Fahrgäste ist das eine Zumutung.","So möchte niemand seinen Weg zur Arbeit oder nach Hause verbringen."],
+      bitteS:sauberS,bitteD:sauberD
+    },
+    dreck:{
+      subject:[`Beschwerde: Verschmutzung ${ortKurz} am ${d}`,`Dreck ${ortKurz}, ${d}`,prev.length?`Erneut Verschmutzung ${ortKurz} (${d})`:`Starke Verschmutzung ${ortKurz} (${d})`],
+      intro:[`ich möchte mich über die Verschmutzung ${ortTxt} am ${wd} beschweren.`,`am ${wd} war es ${ortTxt} stark verschmutzt.`,`leider muss ich Ihnen mitteilen, dass es ${ortTxt} am ${wd} sehr dreckig war.`],
+      folge:["Für Fahrgäste ist dieser Zustand unangenehm.","Saubere Züge und Haltestellen gehören für mich zu einem ordentlichen Angebot."],
+      bitteS:sauberS,bitteD:sauberD
+    }
+  }[T];
+
+  const subject=P(0,TX.subject);
+  const gruss=P(1,["Sehr geehrte Damen und Herren,","Guten Tag,","Sehr geehrtes Kundendialog-Team,","Sehr geehrte Damen und Herren,"]);
+  const intro=P(2,TX.intro);
+  const kopf=P(3,["Angaben zum Vorfall:","Die Details:","Zur Einordnung die genauen Daten:","Folgende Angaben habe ich festgehalten:"]);
+  const hier=need?"auf dieser Linie":"an dieser Haltestelle";
+  const wiederholt=P(4,[`Das ist kein Einzelfall. Ich habe ${hier} bereits folgende Vorfälle festgehalten:`,`Leider ist das nicht das erste Mal. Frühere Vorfälle ${hier}:`,`Es handelt sich um ein wiederkehrendes Problem. Frühere Vorfälle ${hier}, die ich notiert habe:`]);
+  const folge=P(5,TX.folge);
+  const bitte=S.ton==="deutlich"?P(6,TX.bitteD):P(6,TX.bitteS);
+  const schluss=P(7,["Mit freundlichen Grüßen","Freundliche Grüße","Viele Grüße","Mit freundlichem Gruß"]);
+
+  const out=[gruss,"",intro];
+  const det=[...detSel];
+  if(cond&&det.length){out.push("",DETAIL[T].mail);det.forEach(x=>out.push(`- ${x}`))}
+  out.push("",kopf);
+  if(need)out.push(`- Linie: ${l}`);
+  if(ri)out.push(`- Richtung: ${ri}`);
+  out.push(`- Datum: ${d}`);
+  if(stop)out.push(`- ${cond&&need?"Ort (nächste Haltestelle)":"Haltestelle"}: ${stop}`);
+  if(woGenau)out.push(`- Wo genau: ${woGenau}`);
+  if(soll)out.push(`- ${cond?"Fahrt laut Fahrplan ab dieser Haltestelle":T==="ausfall"?"Ausgefallene Abfahrt laut Fahrplan":"Abfahrt laut Fahrplan"}: ${soll} Uhr`);
+  if(ist)out.push(`- ${t.istMail}: ${ist} Uhr${diff}`);
+  if(wagen)out.push(`- Wagennummer: ${wagen}`);
+  if(need&&dep&&dep.line.toUpperCase()===l&&hm(dep.sched)===soll){
+    const df=dep.rt?Math.round((dep.rt-dep.sched)/60000):0;
+    if(T==="frueh"&&dep.rt&&df<0)out.push(`- Laut den öffentlichen Echtzeitdaten ist der Zug um ${hm(dep.rt)} Uhr abgefahren, ${mins(-df)} vor Fahrplan.`);
+    if(T==="spaet"&&dep.rt&&df>0)out.push(`- Laut den öffentlichen Echtzeitdaten kam der Zug um ${hm(dep.rt)} Uhr, ${mins(df)} nach Fahrplan.`);
+    if(T==="ausfall"&&dep.cancelled)out.push(`- In den öffentlichen Echtzeitdaten ist diese Fahrt als ausgefallen gemeldet.`);
+  }
+  if(photos.length)out.push(`- Im Anhang: ${photos.length===1?"ein Foto":photos.length+" Fotos"}`);
+  const note=$("notiz").value.trim();
+  if(note)out.push("",note);
+  if(prev.length){out.push("",wiederholt);prev.forEach(h=>out.push(incLine(h)))}
+  out.push("",folge+" "+bitte);
+  out.push("",schluss,name||"[Dein Name]");
+  return{subject,body:out.join("\n")};
+}
+function buildSummary(key){
+  const items=incidents.filter(h=>gkey(h)===key).sort((a,b)=>a.ts-b.ts);
+  const isLine=!key.startsWith("@"),n=isLine?key:key.slice(1);
+  const first=dShort(new Date(items[0].ts));
+  const wo=isLine?`auf der Linie ${n}`:`an der Haltestelle ${n}`;
+  const subject=`Wiederholte Probleme ${wo}: ${items.length} Vorfälle seit dem ${first}`;
+  const out=["Sehr geehrte Damen und Herren,","",`${wo} habe ich seit dem ${first} insgesamt ${items.length} Vorfälle festgehalten:`,""];
+  items.forEach(h=>out.push(incLine(h)));
+  out.push("",S.ton==="deutlich"
+    ?"Das sind keine Einzelfälle mehr. Ich erwarte, dass Sie die Ursachen klären und Abhilfe schaffen. Bitte teilen Sie mir mit, welche Maßnahmen Sie ergreifen."
+    :"Da es sich nicht um Einzelfälle handelt, bitte ich Sie, die Ursachen zu prüfen und mir mitzuteilen, wie Sie Abhilfe schaffen wollen.");
+  out.push("","Mit freundlichen Grüßen",S.name.trim()||"[Dein Name]");
+  const def=S.empf==="custom"?S.custom.trim():OPS[S.empf].mail;
+  const lastTo=[...items].reverse().find(h=>h.to);
+  return{subject,body:out.join("\n"),to:(lastTo&&lastTo.to)||def};
+}
+const mailto=(to,subject,body)=>`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+// ---------- Schritt 4 zeichnen ----------
+function missing(){
+  const T=typ(),m=[],need=needsLine();
+  if(!$("stop").value.trim())m.push("die Haltestelle");
+  if(need&&!line())m.push("die Linie");
+  if(!need&&!bereich())m.push("die Angabe U-Bahn oder S-Bahn");
+  if(T==="ausfall"&&!$("soll").value)m.push("die ausgefallene Abfahrt");
+  if(!S.name.trim())m.push("dein Name");
+  if(!recipient().mail)m.push("die Adresse des Empfängers (Einstellungen)");
+  return m;
+}
+function render(){
+  const T=typ(),t=TYPES[T],need=needsLine(),l=line(),stop=$("stop").value.trim(),ist=$("ist").value;
+  const soll=need?$("soll").value:"",ri=need?noRi($("richtung").value):"",b=need?"":bereich();
+  $("n2").classList.toggle("done",!!stop);
+  $("n3").classList.toggle("done",need?(!!l&&(T!=="ausfall"||!!soll)):!!b);
+
+  // Das Schild
+  const hasTrip=!!(l||stop);
+  $("plate").hidden=!hasTrip;
+  if(hasTrip){
+    $("pStop").textContent=stop||"Haltestelle fehlt";
+    const bl=need?(l||"?"):b;
+    $("pLine").textContent=bl;$("pLine").className=bcls(bl);$("pLine").hidden=!bl;
+    $("pDir").textContent=need?(ri?"Richtung "+ri:""):(b?b+"-Bahn-Haltestelle":"");
+    $("pType").textContent=t.kurz;
+    const dl=$("pTimes");dl.textContent="";
+    const add=(k,v)=>dl.append(el("div",null,el("dt",{text:k}),el("dd",{text:v})));
+    add("Datum",dDay(when));
+    if(soll)add(t.cond?"Fahrt ab":"Fahrplan",soll);
+    if(effIst())add(t.plate,effIst());
+    if(soll&&effIst()&&(T==="frueh"||T==="spaet")){
+      const [a,c]=ist.split(":").map(Number),[e,f]=soll.split(":").map(Number);const m=(e*60+f)-(a*60+c);
+      if(T==="frueh"&&m>0)add("Abweichung",`${m} Min. zu früh`);
+      if(T==="spaet"&&m<0)add("Abweichung",`${-m} Min. zu spät`);
+    }
+    if(photos.length)add("Fotos",String(photos.length));
+  }
+
+  // Was fehlt noch?
+  const miss=missing(),mn=$("missNote");
+  if(!hasTrip){mn.hidden=false;mn.className="note";mn.textContent="Sobald die Haltestelle feststeht, steht hier deine fertige Beschwerde."}
+  else{mn.hidden=!miss.length;mn.className="note warn";mn.textContent="Es fehlt noch: "+miss.join(", ")+"."}
+  const tn=$("timeNote"),off=hasTrip&&soll&&ist&&t.showIst&&(T==="frueh"||T==="spaet")&&!effIst();
+  tn.hidden=!off;
+  if(off)tn.textContent=T==="frueh"
+    ?`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht vor der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann der Zug wirklich abgefahren ist. Sonst nennt die Mail nur die Fahrplanzeit.`
+    :`Die Uhrzeit bei „${t.ist}“ (${ist}) liegt nicht nach der Fahrplanzeit (${soll}). Trag in Schritt 2 ein, wann der Zug wirklich gekommen ist. Sonst nennt die Mail nur die Fahrplanzeit.`;
+  $("nameInlineWrap").hidden=!askName;
+
+  // Die Mail
+  const ready=!!(stop&&(need?l:b));
+  $("mailWrap").hidden=!ready;
+  const rc=recipient(),{subject,body}=build();
+  $("toAddr").textContent=rc.mail||"Adresse fehlt";
+  const on=$("opNote");on.hidden=!rc.note;on.textContent=rc.note;on.className=rc.warn?"warn":"";
+  $("subj").textContent=subject;
+  $("body").textContent=body;
+  $("opMailWrap").hidden=!(ready&&rc.ask);
+  if(rc.ask){$("opMailName").textContent=rc.ask;$("opMail").dataset.ag=rc.ask}
+  const ok=!miss.length;
+  const mb=$("mailBtn");mb.href=ok?mailto(rc.mail,subject,body):"#";
+  mb.setAttribute("aria-disabled",String(!ok));
+  $("copyBtn").disabled=!ok;
+  $("logBtn").hidden=!ready;
+  $("savedNote").hidden=!(ready&&savedKey&&savedKey===keyOf(currentIncident()));
+}
+
+// ---------- Verlauf ----------
+function saveIncident(){
+  const inc=currentIncident(),k=keyOf(inc);
+  incidents=incidents.filter(h=>keyOf(h)!==k);
+  incidents.push(inc);incidents.sort((a,b)=>b.ts-a.ts);
+  store.set("mb.hist",incidents);
+  if(curStop&&curStop.name===inc.stop){
+    const rec=[{name:curStop.name,ids:curStop.ids},...recentStops().filter(r=>r.name!==curStop.name)].slice(0,6);
+    store.set("mb.stops",rec);
+  }
+  savedKey=k;render();
+}
+function renderHist(){
+  const box=$("hist");box.textContent="";
+  if(!incidents.length){
+    $("histIntro").textContent="";
+    box.append(el("div",{class:"empty"},
+      el("p",{text:"Noch keine Vorfälle. Jede Beschwerde, die du über die App verschickst, wird hier festgehalten."}),
+      el("p",{class:"hint",text:"Ab dem zweiten Vorfall auf derselben Linie oder an derselben Haltestelle führt die App die früheren Fälle in der Mail mit auf. Aus mehreren Vorfällen kannst du außerdem eine Sammelbeschwerde machen."}),
+      el("button",{type:"button",class:"btn primary",text:"Vorfall melden",onclick:()=>show("melden")})));
+    return;
+  }
+  $("histIntro").textContent=`${incidents.length} ${incidents.length===1?"Vorfall":"Vorfälle"} auf diesem Handy gespeichert, nach Linie und Haltestelle sortiert.`;
+  const by=new Map();
+  incidents.forEach(h=>{const k=gkey(h);if(!by.has(k))by.set(k,[]);by.get(k).push(h)});
+  [...by.entries()].sort((a,b)=>b[1].length-a[1].length||natSort(a[0],b[0])).forEach(([key,items])=>{
+    const isLine=!key.startsWith("@");
+    const counts={};items.forEach(h=>{const k=typeOf(h).kurz;counts[k]=(counts[k]||0)+1});
+    const parts=Object.entries(counts).map(([k,n])=>`${n}× ${k}`).join(", ");
+    const num=`${items.length} ${items.length===1?"Vorfall":"Vorfälle"}`;
+    const mark=isLine?key:((items.find(h=>h.bereich)||{}).bereich||"");
+    const card=el("section",{class:"linecard"},
+      el("div",{class:"head"},mark?el("span",{class:bcls(mark),text:mark}):null,el("h3",{text:isLine?num:`${key.slice(1)}: ${num}`})),
+      el("p",{class:"hint",text:parts}));
+    const ul=el("ul");
+    items.forEach(h=>{
+      const d=new Date(h.ts);
+      ul.append(el("li",{class:"inc"},
+        el("div",null,
+          el("div",{class:"when",text:`${dDay(d)}, ${h.ist||h.soll||hm(d)} Uhr`}),
+          el("div",{class:"what",text:typeOf(h).kurz+(isLine&&h.stop?", "+h.stop:"")+(h.fotos?`, ${h.fotos===1?"ein Foto":h.fotos+" Fotos"} verschickt`:"")})),
+        el("button",{type:"button",class:"iconbtn","aria-label":`Vorfall vom ${dDay(d)} löschen`,onclick:()=>removeIncident(h)},icon("i-trash"))));
+    });
+    card.append(ul);
+    if(items.length>=2)card.append(el("button",{type:"button",class:"btn",text:"Sammelbeschwerde schreiben",onclick:()=>openSummary(key)}));
+    box.append(card);
+  });
+}
+function removeIncident(h){
+  const i=incidents.indexOf(h);if(i<0)return;
+  incidents.splice(i,1);store.set("mb.hist",incidents);renderHist();
+  toast("Vorfall gelöscht.","Rückgängig",()=>{incidents.splice(i,0,h);store.set("mb.hist",incidents);renderHist()});
+}
+let sheetData=null;
+function openSummary(l){
+  sheetData=buildSummary(l);
+  $("sTo").textContent=sheetData.to||"Adresse fehlt";
+  $("sSubj").textContent=sheetData.subject;
+  $("sBody").textContent=sheetData.body;
+  $("sMail").href=mailto(sheetData.to,sheetData.subject,sheetData.body);
+  const s=$("sheet");if(s.showModal)s.showModal();else s.setAttribute("open","");
+}
+function copyText(txt,fallbackNode){
+  const fallback=()=>{const r=document.createRange();r.selectNodeContents(fallbackNode);const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Text markiert. Jetzt kopieren.")};
+  try{navigator.clipboard.writeText(txt).then(()=>toast("Kopiert."),fallback)}catch(e){fallback()}
+}
+
+// ---------- Neue Beschwerde ----------
+function resetReport(){
+  savedKey="";detSel.clear();buildDetChips();
+  photos=[];renderPhotos();
+  ["notiz","wagen","wo","linie","richtung","soll"].forEach(id=>{$(id).value=""});
+  fromSel={linie:false,ri:false,soll:false};
+  variant=Array.from({length:8},Math.random);
+  setWhen(new Date(),false);
+  if(curStop)onStop();else render();
+  window.scrollTo(0,0);
+}
+
+// ---------- Vorfallart ----------
+function layout(){
+  const T=typ(),cond=!!TYPES[T].cond,need=needsLine();
+  $("condWrap").hidden=!cond;
+  $("safeNote").hidden=T!=="belaestigt";
+  $("h3a").textContent=need?"Welcher Zug?":"Wo genau?";
+  $("tripBox").hidden=!need;$("haltWrap").hidden=need;$("manualTrip").hidden=!need;
+  $("wagenWrap").hidden=!(cond&&need);
+}
+function applyType(){
+  const T=typ(),t=TYPES[T];
+  $("istLbl").textContent=t.ist;
+  $("timeSelLbl").textContent=t.pick;
+  $("sollLbl").textContent=T==="ausfall"?"Ausgefallene Abfahrt":"Laut Fahrplan";
+  if(detFor!==T){detSel.clear();detFor=T;buildDetChips()}
+  $("notiz").placeholder=t.cond?"z. B. Es betraf den ganzen Wagen.":"z. B. Ich habe dadurch meinen Anschluss verpasst.";
+  layout();
+  if(needsLine()&&timeList.length){
+    if(!timeManual){const i=pickIndex(timeList);if(i>=0)$("timeSel").value=String(i)}
+    onTime();
+  }else render();
+}
+function buildDetChips(){
+  const box=$("detChips"),D=DETAIL[typ()];box.textContent="";
+  if(!D)return;
+  $("detLbl").textContent=D.frage;
+  D.items.forEach(f=>{
+    const c=el("button",{type:"button",class:"chip",text:f,"aria-pressed":String(detSel.has(f))});
+    c.onclick=()=>{if(detSel.has(f))detSel.delete(f);else detSel.add(f);c.setAttribute("aria-pressed",String(detSel.has(f)));render()};
+    box.append(c);
+  });
+}
+
+// ---------- Fotos ----------
+// Fotos werden verkleinert und nur im Arbeitsspeicher gehalten, bis die Mail verschickt ist.
+const MAXP=3;
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,1600/Math.max(img.width,img.height));
+      const c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      const data=c.toDataURL("image/jpeg",.8);
+      res({url:data,b64:data.slice(data.indexOf(",")+1)});
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("Bild nicht lesbar"))};
+    img.src=url;
+  });
+}
+async function addPhotos(input){
+  const files=[...input.files];input.value="";
+  for(const f of files){
+    if(photos.length>=MAXP){toast("Mehr als drei Fotos passen nicht in eine Mail.");break}
+    try{photos.push(await shrink(f))}catch(e){toast("Das Foto ließ sich nicht lesen.")}
+  }
+  renderPhotos();render();
+}
+function renderPhotos(){
+  const box=$("photos");box.textContent="";box.hidden=!photos.length;
+  photos.forEach((p,i)=>{
+    box.append(el("div",{class:"ph"},
+      el("img",{src:p.url,alt:`Foto ${i+1}`}),
+      el("button",{type:"button","aria-label":`Foto ${i+1} entfernen`,onclick:()=>{photos.splice(i,1);renderPhotos();render()}},icon("i-close"))));
+  });
+  const full=photos.length>=MAXP;
+  ["camLbl","galLbl"].forEach(id=>$(id).setAttribute("aria-disabled",String(full)));
+  ["camInput","galInput"].forEach(id=>{$(id).disabled=full});
+}
+
+// ---------- Einstellungen ----------
+function setName(v,from){
+  S.name=v;store.set("mb.name",v);
+  if(from!=="name")$("name").value=v;
+  if(from!=="nameInline")$("nameInline").value=v;
+  render();
+}
+function renderOpList(){
+  const ul=$("opList"),keys=Object.keys(S.opMails).sort(natSort);
+  $("opListWrap").hidden=!keys.length;ul.textContent="";
+  keys.forEach(k=>ul.append(el("li",{class:"inc"},
+    el("div",null,el("div",{class:"when",text:k}),el("div",{class:"what",text:S.opMails[k]})),
+    el("button",{type:"button",class:"iconbtn","aria-label":`Adresse von ${k} löschen`,onclick:()=>{delete S.opMails[k];store.set("mb.opMails",S.opMails);renderOpList()}},icon("i-trash")))));
+}
+function initSettings(){
+  renderOpList();
+  $("opMail").addEventListener("change",e=>{
+    const v=e.target.value.trim(),ag=e.target.dataset.ag;
+    if(!ag||!v)return;
+    if(!okMail(v)){toast("Das ist keine vollständige E-Mail-Adresse.");return}
+    S.opMails[ag]=v;store.set("mb.opMails",S.opMails);e.target.value="";
+    renderOpList();render();toast(`Adresse für ${ag} gemerkt.`);
+  });
+  $("name").value=S.name;$("nameInline").value=S.name;
+  $("empf").value=S.empf;$("customMail").value=S.custom;$("customWrap").hidden=S.empf!=="custom";
+  $("autoEmpf").checked=!!S.auto;$("autoLoc").checked=!!S.autoLoc;
+  const r=document.querySelector(`input[name="ton"][value="${S.ton}"]`);if(r)r.checked=true;
+  $("versionLine").textContent="Version "+(VERSION.startsWith("__")?"in Entwicklung":VERSION);
+  $("name").addEventListener("input",e=>setName(e.target.value,"name"));
+  $("nameInline").addEventListener("input",e=>setName(e.target.value,"nameInline"));
+  $("empf").onchange=e=>{S.empf=e.target.value;store.set("mb.betreiber",S.empf);$("customWrap").hidden=S.empf!=="custom";render()};
+  $("customMail").addEventListener("input",e=>{S.custom=e.target.value;store.set("mb.custom",S.custom);render()});
+  $("autoEmpf").onchange=e=>{S.auto=e.target.checked;store.set("mb.autoEmpf",S.auto);render()};
+  $("autoLoc").onchange=e=>{S.autoLoc=e.target.checked;store.set("mb.autoLoc",S.autoLoc)};
+  document.querySelectorAll('input[name="ton"]').forEach(r=>r.addEventListener("change",()=>{S.ton=r.value;store.set("mb.ton",S.ton);render()}));
+}
+
+// ---------- Ereignisse ----------
+["melden","verlauf","einstellungen"].forEach(k=>{$("tab-"+k).onclick=()=>show(k)});
+document.querySelectorAll('input[name="typ"]').forEach(r=>r.addEventListener("change",()=>{store.set("mb.typ",typ());applyType()}));
+document.querySelectorAll('input[name="ort"]').forEach(r=>r.addEventListener("change",applyType));
+document.querySelectorAll('input[name="bereich"]').forEach(r=>r.addEventListener("change",()=>{bereichManual=true;render()}));
+$("camInput").addEventListener("change",e=>addPhotos(e.target));
+$("galInput").addEventListener("change",e=>addPhotos(e.target));
+$("gpsBtn").onclick=locate;
+$("searchToggle").onclick=()=>{
+  const f=$("searchForm");f.hidden=!f.hidden;
+  $("searchToggle").setAttribute("aria-expanded",String(!f.hidden));
+  if(!f.hidden)$("stopQuery").focus();
+};
+$("searchForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const q=$("stopQuery").value.trim();if(q.length<2){toast("Gib mindestens zwei Buchstaben ein.");return}
+  setStatus("load","Suche Haltestellen …");
+  let list;
+  try{list=await searchStops(q)}catch(err){setStatus("warn","Die Suche ist gerade nicht erreichbar. Trag die Haltestelle in Schritt 3 selbst ein.");openManual();return}
+  if(!list.length){setStatus("warn",`Keine U- oder S-Bahn-Haltestelle mit „${q}“ gefunden.`);return}
+  setStops(list,"Suchergebnisse");
+  setStatus("ok",list.length===1?"Eine Haltestelle gefunden.":`${list.length} Haltestellen gefunden. Wähl die richtige aus.`);
+  $("stopQuery").blur();
+  if(list.length===1){$("stopSel").value="0";onStop()}else{$("stopSel").value="";onStop();$("stopSel").focus()}
+});
+$("stopSel").onchange=()=>onStop();
+$("lineSel").onchange=()=>onLine();
+$("dirSel").onchange=()=>onDir();
+$("timeSel").onchange=()=>{timeManual=true;onTime()};
+$("datum").addEventListener("change",readWhen);
+$("ist").addEventListener("change",readWhen);
+$("nowBtn").onclick=()=>{setWhen(new Date(),false);if(curStop)onStop(true);else render()};
+$("linie").addEventListener("input",()=>{fromSel.linie=false;render()});
+$("richtung").addEventListener("input",()=>{fromSel.ri=false;render()});
+$("soll").addEventListener("input",()=>{fromSel.soll=false;render()});
+["stop","notiz","wagen","wo"].forEach(id=>$(id).addEventListener("input",render));
+$("rerollBtn").onclick=()=>{variant=Array.from({length:8},Math.random);render();toast("Neu formuliert.")};
+$("mailBtn").addEventListener("click",e=>{
+  if(missing().length){e.preventDefault();return}
+  const EC=plug("EmailComposer");
+  if(photos.length&&EC){
+    // Mit Fotos: Mail samt Anhängen direkt an die Mail-App übergeben
+    e.preventDefault();
+    const rc=recipient(),{subject,body}=build();
+    const att=photos.map((p,i)=>({type:"base64",path:p.b64,name:`foto-${i+1}.jpg`}));
+    EC.open({to:[rc.mail],subject,body,isHtml:false,attachments:att}).catch(()=>{
+      toast("Die Fotos ließen sich nicht anhängen. Die Mail öffnet sich ohne sie.");
+      location.href=mailto(rc.mail,subject,body);
+    });
+    saveIncident();toast("Im Verlauf gespeichert.");
+    return;
+  }
+  saveIncident();
+  toast(photos.length?"Häng die Fotos in der Mail-App selbst an.":"Im Verlauf gespeichert.");
+});
+$("copyBtn").onclick=()=>{
+  if(missing().length)return;
+  const {subject,body}=build();
+  copyText(`An: ${recipient().mail}\nBetreff: ${subject}\n\n${body}`,$("body"));
+  saveIncident();
+};
+$("logBtn").onclick=()=>{
+  if(!$("stop").value.trim()||!(needsLine()?line():bereich()))return;
+  saveIncident();toast("Im Verlauf gespeichert.");
+};
+$("newBtn").onclick=resetReport;
+$("sheetClose").onclick=()=>$("sheet").close();
+$("sheet").addEventListener("click",e=>{if(e.target===$("sheet"))$("sheet").close()});
+$("sCopy").onclick=()=>{if(sheetData)copyText(`An: ${sheetData.to}\nBetreff: ${sheetData.subject}\n\n${sheetData.body}`,$("sBody"))};
+
+// Reiter ausblenden, solange die Tastatur offen ist
+document.addEventListener("focusin",e=>{if(e.target.matches&&e.target.matches("input:not([type=radio]):not([type=checkbox]),textarea"))document.body.classList.add("typing")});
+document.addEventListener("focusout",()=>document.body.classList.remove("typing"));
+
+// Zurück-Taste von Android
+const CapApp=plug("App");
+if(CapApp&&CapApp.addListener){
+  try{CapApp.addListener("backButton",()=>{
+    if($("sheet").open){$("sheet").close();return}
+    if(view!=="melden"){show("melden");return}
+    if(CapApp.minimizeApp)CapApp.minimizeApp();else if(CapApp.exitApp)CapApp.exitApp();
+  })}catch(e){}
+}
+
+// Statusleiste von Android an hell/dunkel anpassen
+function syncStatusBar(){
+  const SB=plug("StatusBar");if(!SB)return;
+  const dark=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches;
+  try{SB.setStyle({style:dark?"DARK":"LIGHT"}).catch(()=>{})}catch(e){}
+  try{SB.setBackgroundColor({color:dark?"#10141A":"#F3F5F8"}).catch(()=>{})}catch(e){}
+}
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",syncStatusBar)}catch(e){}
+
+// Nach längerer Pause mit frischer Uhrzeit und frischem Standort weitermachen
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  if(hiddenAt&&Date.now()-hiddenAt>15*60000&&!savedKey&&!line()){
+    if(!whenManual)setWhen(new Date(),false);
+    autoLocate();
+  }
+});
+
+// ---------- Start ----------
+syncStatusBar();
+initSettings();
+{const t=store.get("mb.typ","spaet");const r=document.querySelector(`input[name="typ"][value="${t}"]`);if(r)r.checked=true}
+setWhen(new Date(),false);
+renderPhotos();
+setStops([],"In der Nähe");
+applyType();
+autoLocate();
+</script>
+</body>
+</html>
