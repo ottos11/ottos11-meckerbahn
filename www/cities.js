@@ -109,5 +109,19 @@ window.CITIES = [
       { key: "S", label: "S-Bahn", badge: "S", modes: ["SUBURBAN"] }
     ],
     ex: { stop: "Hauptwache", bus: "36 oder 30", bahn: "U4 oder S8", dir: "Enkheim" }
+  },
+  {
+    id: "augsburg", name: "Augsburg", center: [48.366, 10.894], r: 14,
+    // swa-Linien heißen im Fahrplan schlicht "OMNIBUS" und "STRASSENBAHN".
+    // Regionalbusse anderer Unternehmen: Die App fragt einmal nach deren Adresse.
+    ops: {
+      swa: { name: "swa", mail: "kundenservice-verkehr@sw-augsburg.de", re: /^(omnibus|stra(ss|ß)enbahn)$|swa\b|stadtwerke augsburg/i }
+    },
+    byMode: { BUS: "swa", TRAM: "swa" },
+    def: { bus: "swa", bahn: "swa" },
+    groups: [
+      { key: "T", label: "Straßenbahn", badge: "Tram", modes: ["TRAM"] }
+    ],
+    ex: { stop: "Königsplatz", bus: "22 oder 32", bahn: "3 oder 6", dir: "Haunstetten West" }
   }
 ];

@@ -956,7 +956,7 @@ function recipient(){
   if(need&&l){
     const ag=(dep&&dep.line.toUpperCase()===l&&hm(dep.sched)===$("soll").value)?dep.agency:"";
     if(ag){
-      if(c)for(const k in c.ops){const o=c.ops[k];if(o.re&&!o.authority&&o.re.test(ag))return res(o,`Betreiber laut Fahrplan: ${ag}.`)}
+      if(c)for(const k in c.ops){const o=c.ops[k];if(o.re&&!o.authority&&o.re.test(ag))return res(o,`Betreiber laut Fahrplan: ${o.name}.`)}
       if(S.opMails[ag])return{name:ag,mail:S.opMails[ag],form:"",note:`Betreiber laut Fahrplan: ${ag}. Adresse von dir hinterlegt.`,warn:false,ask:""};
       if(c&&c.fallback){const o=c.ops[c.fallback];return res(o,`Betreiber laut Fahrplan: ${ag}. Beschwerden dazu nimmt hier ${o.name} entgegen.`)}
       return res(def,def

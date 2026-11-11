@@ -29,6 +29,7 @@ Die App erkennt die Stadt am Standort und schickt die Beschwerde an den zuständ
 | München | MVG (Formular) | MVG (Formular) | S-Bahn München (Formular) |
 | Köln | KVB (Formular) | KVB (Formular) | DB Regio NRW (Formular) |
 | Frankfurt | RMV-Serviceportal (Formular) | RMV-Serviceportal (Formular) | RMV-Serviceportal (Formular) |
+| Augsburg | swa (Mail) | swa, Straßenbahn (Mail) | – |
 
 Bei Betrieben mit Formular kopiert die App den Text und öffnet das Formular. In anderen Städten funktioniert die App auch, die Adresse des Betriebs trägt man dann einmal selbst ein. Die Stadt lässt sich unter Einstellungen auch fest einstellen.
 
