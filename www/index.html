@@ -948,7 +948,10 @@ function pickIndex(list){
     if(i<0)i=lastBefore(w-60000);
   }else if(T==="frueh"){
     let bd=near;list.forEach((x,k)=>{const r=rtOf(x);if(r!==null&&r<schOf(x)){const d=Math.abs(r-w);if(d<=bd){bd=d;i=k}}});
-    if(i<0)i=closest(schOf);
+    // Ohne Echtzeit: Wer "zu früh" meldet, steht an der Haltestelle und der Bus ist schon weg.
+    // Gemeint ist die Fahrt, die in den nächsten 5 Minuten fällig wäre, sonst die zuletzt fällige.
+    if(i<0)list.forEach((x,k)=>{const s=schOf(x);if(i<0&&s>=w&&s<=w+5*60000)i=k});
+    if(i<0)i=lastBefore(w);
   }else{
     i=closest(x=>{const r=rtOf(x);return r===null?schOf(x):r});
   }
