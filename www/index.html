@@ -698,12 +698,18 @@ function setWhen(d,manual){
   when=d;whenManual=!!manual;
   $("datum").value=ymd(d);$("datum").max=ymd(new Date());$("ist").value=hm(d);
   $("nowBtn").hidden=!whenManual;
+  istLabel();
+}
+// Vorbelegt ist die aktuelle Uhrzeit. Bei "zu früh" ist das fast nie die echte Abfahrt, das soll man sehen.
+function istLabel(){
+  const T=typeof typ==="function"?typ():null;if(!T||!TYPES[T])return;
+  $("istLbl").textContent=TYPES[T].ist+(T==="frueh"&&!whenManual?" (jetzt, bitte anpassen)":"");
 }
 let reloadT;
 function readWhen(){
   const dv=$("datum").value,tv=$("ist").value;if(!dv||!tv)return;
   const d=new Date(`${dv}T${tv}:00`);if(isNaN(d))return;
-  when=d;whenManual=true;$("nowBtn").hidden=false;
+  when=d;whenManual=true;$("nowBtn").hidden=false;istLabel();
   render();
   clearTimeout(reloadT);reloadT=setTimeout(()=>{if(curStop)onStop(true)},600);
 }
@@ -791,7 +797,7 @@ async function stopDepartures(stop){
   if(!f){f=await jget(FPBASE+fi.city+"/s/"+encodeURIComponent(id)+".json?v="+fi.v);fpFiles.set(key,f)}
   const ref=when.getTime(),lo=ref-60*60000,hi=ref+40*60000;
   const [fy,fm,fd]=fi.from.split("-").map(Number);
-  const out=[];
+  const out=[],seen=new Set();
   // Abfahrten nach Mitternacht gehören zum Betriebstag davor, deshalb auch den Vortag prüfen
   for(const back of [1,0]){
     const d=new Date(when.getFullYear(),when.getMonth(),when.getDate()-back);
@@ -802,7 +808,8 @@ async function stopDepartures(stop){
       const [line,mode,ag,dir]=f.p[pi];
       for(const mn of mins){
         const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,mn).getTime();
-        if(t<lo||t>hi)continue;
+        if(t<lo||t>hi||seen.has(pi+"|"+t))continue;
+        seen.add(pi+"|"+t);
         out.push({tripId:`${id}:${pi}:${i}:${mn}`,routeShortName:line,headsign:dir,mode,agencyName:ag,
           place:{name:stop.name,stopId:id,lat:stop.lat,lon:stop.lon,scheduledDeparture:new Date(t).toISOString()}});
       }
@@ -985,6 +992,8 @@ function onTime(){
   }else if(T==="ausfall"){
     if(dep.cancelled)showNote("good","Laut Echtzeitdaten ist diese Fahrt als ausgefallen gemeldet."+beleg);
     else showNote("",dep.rt?"Laut Echtzeitdaten ist diese Fahrt nicht als ausgefallen gemeldet. Deine Beobachtung zählt trotzdem.":"Die App kennt nur den Fahrplan, keine Echtzeit. Die Mail stützt sich auf deine Beobachtung.");
+  }else if(df===null&&T==="frueh"&&!whenManual&&when.getTime()>=dep.sched.getTime()){
+    showNote("warn",`Bei „Abgefahren um“ steht noch die aktuelle Uhrzeit (${hm(when)}). Trag dort ein, wann ${V.art.der} ${V.fz} wirklich abgefahren ist, also vor ${hm(dep.sched)} Uhr. Ohne diese Angabe steht in der Mail nur, dass die Fahrt vor der planmäßigen Abfahrt weg war.`);
   }else if(df===null){
     showNote("","Die App kennt nur den Fahrplan, keine Echtzeit. Die Mail stützt sich auf deine Beobachtung.");
   }else if(T==="frueh"){
@@ -1444,7 +1453,7 @@ function layout(){
 }
 function applyType(){
   const T=typ(),t=TYPES[T];
-  $("istLbl").textContent=t.ist;
+  istLabel();
   $("timeSelLbl").textContent=t.pick;
   $("sollLbl").textContent=T==="ausfall"?"Ausgefallene Abfahrt":"Laut Fahrplan";
   if(detFor!==T){detSel.clear();detFor=T;buildDetChips()}

@@ -319,10 +319,17 @@ def main():
             if cl["city"] != cid or id(cl) in seen:
                 continue
             seen.add(id(cl))
-            groups = defaultdict(set)
+            # Manche Fahrten stehen im DELFI-Fahrplan doppelt (mit verschiedenen Verkehrstagen):
+            # je Muster und Minute die Tage zusammenführen, dann gleiche Tage gruppieren
+            per = defaultdict(int)
             for (pi, svc), mins in deps.get(cid + "|" + cl["id"], {}).items():
-                if mask.get(svc):
-                    groups[(pi, mask[svc])] |= mins
+                m = mask.get(svc)
+                if m:
+                    for mn in mins:
+                        per[(pi, mn)] |= m
+            groups = defaultdict(set)
+            for (pi, mn), m in per.items():
+                groups[(pi, m)].add(mn)
             if not groups:
                 continue      # hier hält im Zeitraum nichts
             used = sorted({pi for pi, _ in groups})
