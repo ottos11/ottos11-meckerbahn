@@ -11,6 +11,10 @@ on:
         description: 'Städte, durch Komma getrennt (leer: alle aus www/cities.js)'
         required: false
         default: ''
+      ohne_vergleich:
+        description: 'Vergleich mit der Vorwoche auslassen (nach gewollten großen Änderungen)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -48,6 +52,15 @@ jobs:
           python3 -c "import json;m=json.load(open('out/manifest.json'));[print(c,v['stops'],'Haltestellen | Betriebe:',[a[:2] for a in v['agencies']]) for c,v in m['cities'].items()]"
           du -sh out/*
           find out -type f | wc -l
+
+      - name: Fahrplandateien prüfen
+        env:
+          PRUEFUNG_OHNE_VERGLEICH: ${{ inputs.ohne_vergleich && '1' || '' }}
+        run: |
+          # Stand der Vorwoche zum Vergleich. Schlägt die Prüfung fehl, wird nichts veröffentlicht
+          # und die App lädt weiter die alten Dateien.
+          curl -sSfL "https://raw.githubusercontent.com/${{ github.repository }}/fahrplan/manifest.json" -o alt.json || echo "Kein Stand der Vorwoche vorhanden."
+          python3 tools/pruefen.py out/manifest.json alt.json
 
       - name: In Zweig "fahrplan" veröffentlichen
         run: |

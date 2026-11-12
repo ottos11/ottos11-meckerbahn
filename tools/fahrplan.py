@@ -256,13 +256,14 @@ def main():
     log("stop_times:", n_rows, "Zeilen; nicht zusammenhängende Fahrten:", n_split)
 
     # --- Verkehrstage als Bitmaske über den Zeitraum ---
-    cal, lo = {}, None
+    cal, lo, hi = {}, None, None
     ix, r = rows(z, "calendar.txt")
     wd = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     for row in r:
         s = col(ix, row, "service_id")
         a, b = ymd(col(ix, row, "start_date")), ymd(col(ix, row, "end_date"))
         lo = a if lo is None or a < lo else lo
+        hi = b if hi is None or b > hi else hi
         if s in used_svc:
             cal[s] = (a, b, [col(ix, row, d) == "1" for d in wd])
     extra = defaultdict(dict)
@@ -270,6 +271,8 @@ def main():
     for row in r:
         s = col(ix, row, "service_id")
         d = ymd(col(ix, row, "date"))
+        if col(ix, row, "exception_type") == "1" and (hi is None or d > hi):
+            hi = d
         if s in used_svc:
             extra[s][d] = col(ix, row, "exception_type") == "1"
     feed_lo = lo
@@ -278,6 +281,9 @@ def main():
         v = col(ix, row, "feed_start_date")
         if v:
             feed_lo = ymd(v)
+        v = col(ix, row, "feed_end_date")
+        if v:
+            hi = ymd(v) if hi is None else min(hi, ymd(v))
     if feed_lo is None:
         feed_lo = min((d for e in extra.values() for d in e), default=start)
 
@@ -300,12 +306,16 @@ def main():
             if active(s, d):
                 m |= 1 << i
         mask[s] = m
-    log("Fahrplan gültig ab", feed_lo, "| Zeitraum", start, "+", DAYS, "Tage")
+    feed_hi = hi or start + dt.timedelta(days=DAYS - 1)
+    st_info = next((i for i in z.infolist() if os.path.basename(i.filename) == "stop_times.txt"), None)
+    feed_date = dt.date(*st_info.date_time[:3]) if st_info else None
+    log("Fahrplan gültig", feed_lo, "bis", feed_hi, "| Datei vom", feed_date, "| Zeitraum", start, "+", DAYS, "Tage")
 
     # --- schreiben ---
     os.makedirs(outdir, exist_ok=True)
     built = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     man = {"built": built, "from": start.isoformat(), "days": DAYS, "estimatedBefore": feed_lo.isoformat(),
+           "feedDate": feed_date.isoformat() if feed_date else None, "feedStart": feed_lo.isoformat(), "feedEnd": feed_hi.isoformat(),
            "source": "DELFI e.V., Sollfahrplandaten Deutschland (GTFS), CC BY 4.0", "cities": {}}
     for c in cities:
         cid = c["id"]
@@ -315,6 +325,8 @@ def main():
         sdir = os.path.join(outdir, cid, "s")
         os.makedirs(sdir, exist_ok=True)
         n_dep = 0
+        per_day = [0] * DAYS      # Abfahrten je Tag im Zeitraum, für die Prüfung
+        dup_removed = 0           # doppelte Abfahrten aus dem DELFI-Fahrplan, die zusammengefasst wurden
         for cl in clusters.values():
             if cl["city"] != cid or id(cl) in seen:
                 continue
@@ -326,10 +338,15 @@ def main():
                 m = mask.get(svc)
                 if m:
                     for mn in mins:
+                        dup_removed += bin(per[(pi, mn)] & m).count("1")
                         per[(pi, mn)] |= m
             groups = defaultdict(set)
             for (pi, mn), m in per.items():
                 groups[(pi, m)].add(mn)
+            for (pi, m), mins in groups.items():
+                for i in range(DAYS):
+                    if m >> i & 1:
+                        per_day[i] += len(mins)
             if not groups:
                 continue      # hier hält im Zeitraum nichts
             used = sorted({pi for pi, _ in groups})
@@ -344,7 +361,7 @@ def main():
         with open(os.path.join(outdir, cid, "index.json"), "w", encoding="utf-8") as f:
             json.dump({"city": cid, "built": built, "from": start.isoformat(), "days": DAYS, "stops": index},
                       f, ensure_ascii=False, separators=(",", ":"))
-        man["cities"][cid] = {"stops": len(index), "patterns": len(pats),
+        man["cities"][cid] = {"stops": len(index), "patterns": len(pats), "perDay": per_day, "dupRemoved": dup_removed,
                               "agencies": [[a, m, n] for (a, m), n in sorted(agn[cid].items(), key=lambda kv: -kv[1])]}
         log(f"{cid}: {len(index)} Haltestellen, {len(pats)} Fahrtmuster, {n_dep} Abfahrtszeiten-Einträge")
     with open(os.path.join(outdir, "manifest.json"), "w", encoding="utf-8") as f:

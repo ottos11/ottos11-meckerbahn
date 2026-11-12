@@ -45,6 +45,13 @@ Der Workflow „Fahrplan aufbereiten“ (`.github/workflows/fahrplan.yml`) lädt
 
 Die Dateien reichen 14 Tage zurück und 21 Tage voraus, damit sich Vorfälle auch nachträglich melden lassen. Echtzeit enthalten sie nicht: Ob ein Bus zu früh, zu spät oder gar nicht kam, beruht auf der Beobachtung der Fahrgäste.
 
+Vor dem Veröffentlichen prüft `tools/pruefen.py` die neuen Dateien. Das Ergebnis steht als Tabelle in der Zusammenfassung des Laufs unter Actions.
+
+- **Fehler, dann wird nichts veröffentlicht und die App lädt weiter die Dateien der Vorwoche:** Der DELFI-Fahrplan ist älter als 14 Tage, eine Stadt hat keine Haltestellen oder Abfahrten, oder Haltestellen bzw. Abfahrten je Werktag weichen um mehr als 20 % von der Vorwoche ab. Nach einer gewollten großen Änderung den Workflow von Hand mit „Vergleich mit der Vorwoche auslassen“ starten.
+- **Hinweise, veröffentlicht wird trotzdem:** Der Fahrplan endet vor dem Zeitraum (etwa weil der Jahresfahrplanwechsel im Dezember noch fehlt), oder einzelne Tage haben deutlich weniger Abfahrten als üblich (meist Feiertage).
+
+Doppelte Fahrten, die im DELFI-Fahrplan vorkommen, fasst die Aufbereitung zusammen.
+
 Aufbereitet werden alle Städte aus `www/cities.js`. Beim Start von Hand lässt sich die Auswahl im Feld `staedte` eingrenzen.
 
 Lizenz der Daten: DELFI e.V., CC BY 4.0. Die App nennt die Quelle unter „Über“.
@@ -78,7 +85,7 @@ Derselbe Build erzeugt zusätzlich ein App-Bundle für Google Play (`fahrgastech
 - `capacitor.config.json`: App-Name und Paket-ID
 - `scripts/patch-android.sh`: ergänzt GPS-Rechte, Farben und das App-Symbol im Android-Projekt
 - `.github/workflows/build-apk.yml`: baut die APK
-- `.github/workflows/fahrplan.yml` und `tools/fahrplan.py`: erzeugen die Fahrplandateien
+- `.github/workflows/fahrplan.yml`, `tools/fahrplan.py` und `tools/pruefen.py`: erzeugen und prüfen die Fahrplandateien
 
 Die Paket-ID `de.ottos11.meckerbahn` der Test-APK stammt aus der Zeit, als die App noch Meckerbahn hieß. Sie bleibt, damit sich die Test-APK weiter als Update installieren lässt.
 
