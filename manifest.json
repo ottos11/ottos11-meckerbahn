@@ -1,0 +1,1166 @@
+{
+ "built": "2026-11-17T12:02:09Z",
+ "from": "2026-11-03",
+ "days": 35,
+ "estimatedBefore": "2026-10-31",
+ "feedDate": "2026-11-15",
+ "feedStart": "2026-10-31",
+ "feedEnd": "2027-03-31",
+ "source": "DELFI e.V., Sollfahrplandaten Deutschland (GTFS), CC BY 4.0",
+ "cities": {
+  "hamburg": {
+   "stops": 5085,
+   "patterns": 2408,
+   "perDay": [
+    679377,
+    679264,
+    679381,
+    686440,
+    487025,
+    367862,
+    678068,
+    677934,
+    677811,
+    676978,
+    684809,
+    488390,
+    366564,
+    678112,
+    678116,
+    678008,
+    677987,
+    687278,
+    492553,
+    370002,
+    672650,
+    672145,
+    672040,
+    672131,
+    680194,
+    486514,
+    364668,
+    675628,
+    672757,
+    672636,
+    672760,
+    680935,
+    485777,
+    362964,
+    668553
+   ],
+   "dupRemoved": 2828297,
+   "agencies": [
+    [
+     "Hochbahn Bus",
+     "BUS",
+     1339087
+    ],
+    [
+     "VHH Bus",
+     "BUS",
+     856318
+    ],
+    [
+     "Hochbahn U-Bahn",
+     "SUBWAY",
+     185910
+    ],
+    [
+     "KVG_HVV",
+     "BUS",
+     146605
+    ],
+    [
+     "S-Bahn Hamburg",
+     "SUBURBAN",
+     100510
+    ],
+    [
+     "KVIPVH",
+     "BUS",
+     66871
+    ],
+    [
+     "AKMasten",
+     "BUS",
+     38674
+    ],
+    [
+     "VGS_Hamburg",
+     "BUS",
+     10828
+    ],
+    [
+     "KVIP-AST",
+     "BUS",
+     9740
+    ],
+    [
+     "Autokraft Kiel GmbH",
+     "BUS",
+     6534
+    ],
+    [
+     "S-Bahn Hamburg",
+     "BUS",
+     5425
+    ],
+    [
+     "AKN Eisenbahn GmbH",
+     "BUS",
+     3560
+    ],
+    [
+     "KVG Stade GmbH & Co. KG",
+     "BUS",
+     2313
+    ],
+    [
+     "DB Regio AG Nord",
+     "BUS",
+     2065
+    ],
+    [
+     "die linie",
+     "BUS",
+     1408
+    ],
+    [
+     "MOIN Mobilitätsinfrastruktur und -betriebs GmbH Landkreis Lü",
+     "BUS",
+     984
+    ],
+    [
+     "Ratzeburg-Möllner Verkehrsbetriebe GmbH",
+     "BUS",
+     406
+    ],
+    [
+     "Nordbahn Eisenbahngesellschaft",
+     "BUS",
+     231
+    ],
+    [
+     "AST VHH",
+     "BUS",
+     200
+    ],
+    [
+     "metronom",
+     "BUS",
+     76
+    ],
+    [
+     "Regionalverkehre Start Deutschland GmbH",
+     "BUS",
+     7
+    ],
+    [
+     "Weser-Ems-Bus Betrieb Bremen",
+     "BUS",
+     6
+    ],
+    [
+     "Nahreisezug",
+     "BUS",
+     3
+    ]
+   ]
+  },
+  "berlin": {
+   "stops": 5087,
+   "patterns": 3877,
+   "perDay": [
+    1131036,
+    1131077,
+    1131443,
+    1138659,
+    853225,
+    726421,
+    1131295,
+    1131145,
+    1131003,
+    1131586,
+    1138249,
+    852512,
+    727270,
+    1131707,
+    1131474,
+    1131538,
+    1131546,
+    1137971,
+    851987,
+    726658,
+    1132092,
+    1132121,
+    1131863,
+    1131946,
+    1138891,
+    854137,
+    728325,
+    1133894,
+    1133806,
+    1133775,
+    1133778,
+    1140509,
+    856512,
+    730323,
+    1133319
+   ],
+   "dupRemoved": 525,
+   "agencies": [
+    [
+     "Berliner Verkehrsbetriebe",
+     "BUS",
+     3533813
+    ],
+    [
+     "Berliner Verkehrsbetriebe",
+     "TRAM",
+     650708
+    ],
+    [
+     "S-Bahn Berlin GmbH",
+     "SUBURBAN",
+     367007
+    ],
+    [
+     "Berliner Verkehrsbetriebe",
+     "SUBWAY",
+     228174
+    ],
+    [
+     "Verkehrsbetrieb Potsdam GmbH",
+     "BUS",
+     113962
+    ],
+    [
+     "Verkehrsbetrieb Potsdam GmbH",
+     "TRAM",
+     53932
+    ],
+    [
+     "Barnimer Busgesellschaft mbH",
+     "BUS",
+     46492
+    ],
+    [
+     "regiobus Potsdam Mittelmark GmbH",
+     "BUS",
+     44775
+    ],
+    [
+     "Oberhavel Verkehrsgesellschaft mbH",
+     "BUS",
+     40667
+    ],
+    [
+     "Havelbus Verkehrsgesellschaft mbH",
+     "BUS",
+     39399
+    ],
+    [
+     "Regionale Verkehrsgesellschaft Dahme-Spreewald mbH",
+     "BUS",
+     39325
+    ],
+    [
+     "S-Bahn Berlin GmbH",
+     "BUS",
+     35688
+    ],
+    [
+     "mobus Märkisch-Oderland Bus GmbH",
+     "BUS",
+     19941
+    ],
+    [
+     "Verkehrsgesellschaft Teltow-Fläming mbH",
+     "BUS",
+     19802
+    ],
+    [
+     "Busverkehr Oder-Spree GmbH",
+     "BUS",
+     15292
+    ],
+    [
+     "Schöneicher Rüdersdorfer Straßenbahn GmbH",
+     "TRAM",
+     6926
+    ],
+    [
+     "DB Regio Nord-Ost",
+     "BUS",
+     2407
+    ],
+    [
+     "Strausberger Eisenbahn GmbH",
+     "TRAM",
+     954
+    ],
+    [
+     "Ostdeutsche Eisenbahn GmbH",
+     "BUS",
+     541
+    ],
+    [
+     "Nahreisezug",
+     "BUS",
+     458
+    ],
+    [
+     "ODEG Ostdeutsche Eisenbahn GmbH",
+     "BUS",
+     447
+    ],
+    [
+     "NEB Niederbarnimer Eisenbahn",
+     "BUS",
+     391
+    ],
+    [
+     "DB Regio Bus Ost GmbH1",
+     "BUS",
+     361
+    ],
+    [
+     "Günter Anger Güterverkehrs GmbH & Co. Omnibusvermietung KG",
+     "BUS",
+     150
+    ],
+    [
+     "DB Fernverkehr AG",
+     "BUS",
+     14
+    ]
+   ]
+  },
+  "muenchen": {
+   "stops": 3352,
+   "patterns": 1964,
+   "perDay": [
+    593647,
+    593381,
+    593337,
+    601385,
+    470820,
+    361036,
+    625840,
+    622432,
+    621924,
+    621599,
+    622379,
+    468667,
+    360666,
+    622457,
+    622873,
+    604014,
+    621743,
+    623924,
+    472446,
+    362592,
+    619076,
+    619171,
+    619303,
+    619411,
+    617220,
+    469294,
+    358753,
+    622494,
+    622576,
+    622625,
+    622719,
+    625218,
+    469021,
+    357758,
+    623047
+   ],
+   "dupRemoved": 52361,
+   "agencies": [
+    [
+     "Bus München",
+     "BUS",
+     1793968
+    ],
+    [
+     "MVV-Regionalbus",
+     "BUS",
+     575582
+    ],
+    [
+     "U-Bahn München",
+     "SUBWAY",
+     528561
+    ],
+    [
+     "Straßenbahn München",
+     "TRAM",
+     486920
+    ],
+    [
+     "DB Regio AG S-Bahn München",
+     "SUBURBAN",
+     150430
+    ],
+    [
+     "MVV-Ruftaxi",
+     "BUS",
+     71664
+    ],
+    [
+     "ExpressBus",
+     "BUS",
+     54482
+    ],
+    [
+     "ExpressBus München",
+     "BUS",
+     37480
+    ],
+    [
+     "NachtBus München",
+     "BUS",
+     27771
+    ],
+    [
+     "Stadtwerke Dachau, Dachau1",
+     "BUS",
+     24678
+    ],
+    [
+     "DB Regio AG S-Bahn München",
+     "BUS",
+     23755
+    ],
+    [
+     "SEV U-Bahn München",
+     "BUS",
+     23116
+    ],
+    [
+     "SEV Tram München",
+     "BUS",
+     21813
+    ],
+    [
+     "NachtTram München",
+     "TRAM",
+     12450
+    ],
+    [
+     "Regionalverkehr Oberbayer (überregional)",
+     "BUS",
+     774
+    ],
+    [
+     "SEV Nacht München",
+     "BUS",
+     548
+    ],
+    [
+     "DB Regio AG Bayern",
+     "BUS",
+     534
+    ],
+    [
+     "Nicht in MVV integriert",
+     "BUS",
+     376
+    ],
+    [
+     "DB RegioNetz Verkehrs GmbH Südostbayernbahn",
+     "BUS",
+     355
+    ],
+    [
+     "Omnibus2",
+     "BUS",
+     180
+    ],
+    [
+     "Bayerische Regiobahn",
+     "BUS",
+     93
+    ],
+    [
+     "Arverio Bayern GmbH",
+     "BUS",
+     40
+    ],
+    [
+     "go.on Gesellschaft für Bus- und Schienenverkehr mbH",
+     "BUS",
+     20
+    ],
+    [
+     "BBS Schapfl KG (VMK)",
+     "BUS",
+     9
+    ],
+    [
+     "DB Fernverkehr AG",
+     "BUS",
+     6
+    ],
+    [
+     "Bus8",
+     "BUS",
+     3
+    ],
+    [
+     "deu.mobil GmbH",
+     "BUS",
+     2
+    ]
+   ]
+  },
+  "koeln": {
+   "stops": 2892,
+   "patterns": 1449,
+   "perDay": [
+    418077,
+    418007,
+    418099,
+    425453,
+    310560,
+    191137,
+    418269,
+    417860,
+    421070,
+    418271,
+    425527,
+    310926,
+    190955,
+    418276,
+    418109,
+    418148,
+    418201,
+    425780,
+    311287,
+    191403,
+    418350,
+    418051,
+    417939,
+    417933,
+    425401,
+    311034,
+    191242,
+    418615,
+    418388,
+    418317,
+    418276,
+    425692,
+    310020,
+    191694,
+    417536
+   ],
+   "dupRemoved": 1940,
+   "agencies": [
+    [
+     "Kölner VB",
+     "BUS",
+     252366
+    ],
+    [
+     "Kölner VB",
+     "TRAM",
+     202305
+    ],
+    [
+     "wupsi GmbH",
+     "BUS",
+     169871
+    ],
+    [
+     "Bahnen der Stadt Monheim",
+     "BUS",
+     82085
+    ],
+    [
+     "RSVG",
+     "BUS",
+     56239
+    ],
+    [
+     "REVG",
+     "BUS",
+     55689
+    ],
+    [
+     "Rheinbahn Bus",
+     "BUS",
+     48864
+    ],
+    [
+     "DB Regio AG NRW",
+     "SUBURBAN",
+     46896
+    ],
+    [
+     "Busverkehr Rheinland",
+     "BUS",
+     27616
+    ],
+    [
+     "Bergisch Gladbach",
+     "BUS",
+     24495
+    ],
+    [
+     "Stadtverkehr Hürth",
+     "BUS",
+     16521
+    ],
+    [
+     "Meckenheim",
+     "BUS",
+     14706
+    ],
+    [
+     "Stadtwerke Bonn",
+     "BUS",
+     14486
+    ],
+    [
+     "Wermelskirchen",
+     "BUS",
+     9134
+    ],
+    [
+     "Nahreisezug",
+     "BUS",
+     6495
+    ],
+    [
+     "Stadtverkehr Brühl",
+     "BUS",
+     6425
+    ],
+    [
+     "Stadtwerke Wesseling",
+     "BUS",
+     5877
+    ],
+    [
+     "Stadtwerke Solingen",
+     "BUS",
+     3388
+    ],
+    [
+     "Euskirchen",
+     "BUS",
+     1289
+    ],
+    [
+     "OVAG",
+     "BUS",
+     944
+    ],
+    [
+     "National Express",
+     "BUS",
+     778
+    ],
+    [
+     "Stadtwerke Bonn",
+     "TRAM",
+     746
+    ],
+    [
+     "DB SEV GmbH",
+     "BUS",
+     468
+    ],
+    [
+     "Martin Becker",
+     "BUS",
+     201
+    ],
+    [
+     "Rurtalbus GmbH",
+     "BUS",
+     33
+    ]
+   ]
+  },
+  "frankfurt": {
+   "stops": 2744,
+   "patterns": 1402,
+   "perDay": [
+    430081,
+    430290,
+    429964,
+    430828,
+    320214,
+    230638,
+    415079,
+    429815,
+    429551,
+    429019,
+    429055,
+    317544,
+    228802,
+    429633,
+    429749,
+    429657,
+    415021,
+    430001,
+    316402,
+    228506,
+    427152,
+    427194,
+    426261,
+    426278,
+    428436,
+    314174,
+    226533,
+    427150,
+    428226,
+    428355,
+    427983,
+    429368,
+    315629,
+    227245,
+    427891
+   ],
+   "dupRemoved": 534,
+   "agencies": [
+    [
+     "Stadtwerke Verkehrsgesellschaft Frankfurt",
+     "TRAM",
+     220500
+    ],
+    [
+     "DB Regio Bus Mitte",
+     "BUS",
+     170956
+    ],
+    [
+     "In-der-City-Bus",
+     "BUS",
+     150164
+    ],
+    [
+     "Stadtwerke Verkehrsgesellschaft Frankfurt",
+     "SUBWAY",
+     123363
+    ],
+    [
+     "DB Regio AG S-Bahn Rhein-Main",
+     "SUBURBAN",
+     88408
+    ],
+    [
+     "Transdev Rhein-Main",
+     "BUS",
+     85251
+    ],
+    [
+     "Offenbacher Verkehrsbetriebe GmbH",
+     "BUS",
+     60903
+    ],
+    [
+     "Stadtwerke Verkehrsgesellschaft Frankfurt",
+     "BUS",
+     29027
+    ],
+    [
+     "Magistrat der Stadt Homburg v.d.H.",
+     "BUS",
+     28964
+    ],
+    [
+     "Hanauer Straßenbahn GmbH",
+     "BUS",
+     26181
+    ],
+    [
+     "HLB Hessenbus Hofheim",
+     "BUS",
+     23699
+    ],
+    [
+     "Racktours GmbH + Co. KG",
+     "BUS",
+     15900
+    ],
+    [
+     "Stroh Bus-Verkehrs GmbH, Offenbach",
+     "BUS",
+     15769
+    ],
+    [
+     "Kreativ Tours GmbH",
+     "BUS",
+     14008
+    ],
+    [
+     "Georg Becker GmbH & Co. KG",
+     "BUS",
+     12955
+    ],
+    [
+     "Stadtverkehr Maintal",
+     "BUS",
+     9754
+    ],
+    [
+     "Verkehrsbetriebe Dreieich",
+     "BUS",
+     9547
+    ],
+    [
+     "HLB Bus GmbH",
+     "BUS",
+     8354
+    ],
+    [
+     "Stadtwerke Oberursel",
+     "BUS",
+     7763
+    ],
+    [
+     "Nahreisezug",
+     "BUS",
+     7403
+    ],
+    [
+     "Stroh Busverkehr GmbH",
+     "BUS",
+     7096
+    ],
+    [
+     "Stadtwerke Langen GmbH",
+     "BUS",
+     6691
+    ],
+    [
+     "Becker-Bus GmbH+Co.KG, Langen",
+     "BUS",
+     6267
+    ],
+    [
+     "VGO Friedberg",
+     "BUS",
+     5607
+    ],
+    [
+     "Stadtwerke Rodgau1",
+     "BUS",
+     5201
+    ],
+    [
+     "Stadtwerke Neu-Isenburg",
+     "BUS",
+     4968
+    ],
+    [
+     "HEAG mobiBus GmbH + Co. KG",
+     "BUS",
+     4754
+    ],
+    [
+     "Fa. Stadtwerke Bad Vilbel GmbH",
+     "BUS",
+     4180
+    ],
+    [
+     "VerkehrsService GmbH Groß-Gerau",
+     "BUS",
+     3652
+    ],
+    [
+     "Schau in's Land Hain GmbH",
+     "BUS",
+     3440
+    ],
+    [
+     "Rüsselsheimer Mobilität",
+     "BUS",
+     3388
+    ],
+    [
+     "Stadt Friedrichsdorf",
+     "BUS",
+     3281
+    ],
+    [
+     "ARGE HRS Omnibus OHG",
+     "BUS",
+     3100
+    ],
+    [
+     "WEFRA-Bus GbR",
+     "BUS",
+     2996
+    ],
+    [
+     "HEAG Mobilo",
+     "TRAM",
+     2375
+    ],
+    [
+     "CityBus Mobil, Trebur",
+     "BUS",
+     2095
+    ],
+    [
+     "Stadtbus Kronberg im Taunus1",
+     "BUS",
+     2001
+    ],
+    [
+     "Urberacher Omnibusbetrieb",
+     "BUS",
+     1554
+    ],
+    [
+     "Omnibusbetrieb Heuser GmbH",
+     "BUS",
+     1397
+    ],
+    [
+     "Private nicht im VRN",
+     "BUS",
+     334
+    ],
+    [
+     "SRW GmbH",
+     "BUS",
+     269
+    ],
+    [
+     "Hessische Landesbahn GmbH",
+     "BUS",
+     247
+    ],
+    [
+     "Via Rhein Main Mobility GmbH",
+     "BUS",
+     199
+    ],
+    [
+     "DB Regio Mitte",
+     "BUS",
+     163
+    ],
+    [
+     "DB Regio AG Bayern",
+     "BUS",
+     74
+    ],
+    [
+     "Medenbach Traffic GmbH",
+     "BUS",
+     68
+    ],
+    [
+     "Main-Taunus-Verkehrsgesellschaft mbH",
+     "BUS",
+     30
+    ],
+    [
+     "FS Omnibus GmbH & Co. KG",
+     "BUS",
+     7
+    ],
+    [
+     "VGO Alsfeld",
+     "BUS",
+     6
+    ],
+    [
+     "VIAS GmbH",
+     "BUS",
+     6
+    ]
+   ]
+  },
+  "augsburg": {
+   "stops": 714,
+   "patterns": 574,
+   "perDay": [
+    79806,
+    79809,
+    79795,
+    82508,
+    59122,
+    43293,
+    93540,
+    93540,
+    93586,
+    93641,
+    95571,
+    59063,
+    43173,
+    90953,
+    90955,
+    87883,
+    90973,
+    92914,
+    59376,
+    43437,
+    90964,
+    90987,
+    90959,
+    90955,
+    92907,
+    59376,
+    43437,
+    90961,
+    90235,
+    90209,
+    90228,
+    92105,
+    59049,
+    43371,
+    90226
+   ],
+   "dupRemoved": 70326,
+   "agencies": [
+    [
+     "OMNIBUS",
+     "BUS",
+     183091
+    ],
+    [
+     "STRASSENBAHN",
+     "TRAM",
+     176989
+    ],
+    [
+     "RBA Augsburg",
+     "BUS",
+     16308
+    ],
+    [
+     "Demmelmair",
+     "BUS",
+     16178
+    ],
+    [
+     "GVG 1 (Bündel Nr. 3)",
+     "BUS",
+     14809
+    ],
+    [
+     "Bus9",
+     "BUS",
+     11803
+    ],
+    [
+     "Schwabenbus",
+     "BUS",
+     11609
+    ],
+    [
+     "Anrufsammeltaxi1",
+     "BUS",
+     11050
+    ],
+    [
+     "Egenberger",
+     "BUS",
+     7961
+    ],
+    [
+     "Koenigsbrunn Stadtbus",
+     "BUS",
+     5980
+    ],
+    [
+     "Friedberg 011",
+     "BUS",
+     3800
+    ],
+    [
+     "Lech Süd (ab 2025)",
+     "BUS",
+     3558
+    ],
+    [
+     "Zusam1",
+     "BUS",
+     2656
+    ],
+    [
+     "Wittelsbacher Land 03 (ab j21)",
+     "BUS",
+     2632
+    ],
+    [
+     "Wittelsbacher Land 01",
+     "BUS",
+     2160
+    ],
+    [
+     "Schwabenbus 7 (Bündel Nr. 18)",
+     "BUS",
+     1668
+    ],
+    [
+     "Wittelsbacher Land 02 (ab j21)",
+     "BUS",
+     789
+    ],
+    [
+     "BBS Brandner (VMK)",
+     "BUS",
+     586
+    ],
+    [
+     "Arverio Bayern GmbH",
+     "BUS",
+     296
+    ],
+    [
+     "Paartal 01",
+     "BUS",
+     264
+    ],
+    [
+     "Bayerische Regiobahn",
+     "BUS",
+     245
+    ],
+    [
+     "Wertach 01 (ab j24)",
+     "BUS",
+     87
+    ],
+    [
+     "Stauden 02 (ab j24)",
+     "BUS",
+     84
+    ],
+    [
+     "ExpressBus",
+     "BUS",
+     76
+    ],
+    [
+     "BBS Schapfl KG (VMK)",
+     "BUS",
+     73
+    ],
+    [
+     "Regionalverkehr Oberbayer (überregional)",
+     "BUS",
+     40
+    ],
+    [
+     "Ludwig",
+     "BUS",
+     18
+    ],
+    [
+     "DB Regio AG Bayern",
+     "BUS",
+     11
+    ]
+   ]
+  }
+ }
+}
